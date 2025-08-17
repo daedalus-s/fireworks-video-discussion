@@ -241,6 +241,59 @@ class SubtitleProcessor:
             logger.error(f"Error parsing VTT file: {e}")
             return []
     
+    def parse_srt(self, srt_path: str) -> List[SubtitleSegment]:
+        """Parse SRT subtitle file"""
+        if not os.path.exists(srt_path):
+            logger.warning(f"Subtitle file not found: {srt_path}")
+            return []
+        
+        try:
+            subtitles = []
+            
+            with open(srt_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Split by double newlines to separate subtitle blocks
+            blocks = content.strip().split('\n\n')
+            
+            for i, block in enumerate(blocks):
+                lines = block.strip().split('\n')
+                
+                if len(lines) >= 3:
+                    # First line is the sequence number
+                    try:
+                        sequence_num = int(lines[0])
+                    except ValueError:
+                        continue
+                    
+                    # Second line is the timestamp
+                    timestamp_line = lines[1]
+                    if ' --> ' in timestamp_line:
+                        start_str, end_str = timestamp_line.split(' --> ')
+                        start_time = self._parse_srt_timestamp(start_str.strip())
+                        end_time = self._parse_srt_timestamp(end_str.strip())
+                        
+                        # Remaining lines are the subtitle text
+                        text_lines = lines[2:]
+                        text = ' '.join(text_lines).strip()
+                        
+                        if text:  # Only add if there's actual text
+                            segment = SubtitleSegment(
+                                text=text,
+                                start_time=start_time,
+                                end_time=end_time,
+                                index=i
+                            )
+                            subtitles.append(segment)
+            
+            self.subtitles = subtitles
+            logger.info(f"✅ Parsed {len(subtitles)} SRT subtitle segments")
+            return subtitles
+            
+        except Exception as e:
+            logger.error(f"Error parsing SRT file: {e}")
+            return []
+    
     def _parse_vtt_manual(self, vtt_path: str) -> List[SubtitleSegment]:
         """Manually parse VTT without library"""
         subtitles = []
@@ -284,7 +337,7 @@ class SubtitleProcessor:
         return subtitles
     
     def _parse_timestamp(self, timestamp: str) -> float:
-        """Parse timestamp to seconds"""
+        """Parse VTT timestamp to seconds"""
         timestamp = timestamp.strip()
         parts = timestamp.replace(',', '.').split(':')
         
@@ -298,6 +351,38 @@ class SubtitleProcessor:
             else:
                 return float(timestamp)
         except:
+            return 0.0
+    
+    def _parse_srt_timestamp(self, timestamp: str) -> float:
+        """Parse SRT timestamp format (HH:MM:SS,mmm) to seconds"""
+        try:
+            # SRT format: HH:MM:SS,mmm (note the comma for milliseconds)
+            timestamp = timestamp.strip()
+            
+            # Replace comma with dot for milliseconds
+            if ',' in timestamp:
+                timestamp = timestamp.replace(',', '.')
+            
+            # Split into time parts
+            parts = timestamp.split(':')
+            
+            if len(parts) == 3:
+                hours = int(parts[0])
+                minutes = int(parts[1])
+                # Handle seconds with milliseconds
+                seconds_parts = parts[2].split('.')
+                seconds = int(seconds_parts[0])
+                milliseconds = int(seconds_parts[1]) if len(seconds_parts) > 1 else 0
+                
+                # Convert to total seconds
+                total_seconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000.0
+                return total_seconds
+            else:
+                logger.warning(f"Invalid SRT timestamp format: {timestamp}")
+                return 0.0
+                
+        except Exception as e:
+            logger.warning(f"Error parsing SRT timestamp '{timestamp}': {e}")
             return 0.0
 
 

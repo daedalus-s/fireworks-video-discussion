@@ -7,6 +7,7 @@ import os
 import asyncio
 import json
 import logging
+import random  # ADD THIS MISSING IMPORT
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
@@ -132,7 +133,7 @@ class VideoAnalysisSystem:
         return result
     
     async def _analyze_frames(self, frames: List[VideoFrame]) -> List[Dict]:
-        """Analyze video frames using Llama4 Maverick vision"""
+        """Analyze video frames with rate limiting"""
         analyses = []
         
         for i, frame in enumerate(frames):
@@ -147,38 +148,60 @@ Describe:
 5. Any text or important details
 
 Be concise but specific."""
+
+            # Rate limiting with retries
+            max_retries = 3
+            success = False
             
-            try:
-                # Use Llama4 Maverick for vision analysis
-                result = await self.fireworks_client.analyze_frame(
-                    base64_image=frame.base64_image,
-                    prompt=prompt,
-                    max_tokens=300
-                )
-                
-                analyses.append({
-                    "frame_number": frame.frame_number,
-                    "timestamp": frame.timestamp,
-                    "analysis": result.content,
-                    "tokens_used": result.tokens_used,
-                    "cost": result.cost
-                })
-                
-            except Exception as e:
-                logger.warning(f"  Frame analysis failed: {e}")
-                # Add placeholder analysis
-                analyses.append({
-                    "frame_number": frame.frame_number,
-                    "timestamp": frame.timestamp,
-                    "analysis": f"Frame at {frame.timestamp:.2f}s - Analysis failed",
-                    "tokens_used": 0,
-                    "cost": 0
-                })
+            for attempt in range(max_retries):
+                try:
+                    # Add delay before each request
+                    delay = 2 + random.uniform(0, 2)  # 2-4 second delay
+                    if attempt > 0:
+                        delay *= (2 ** attempt)  # Exponential backoff on retries
+                    
+                    await asyncio.sleep(delay)
+                    
+                    result = await self.fireworks_client.analyze_frame(
+                        base64_image=frame.base64_image,
+                        prompt=prompt,
+                        max_tokens=300
+                    )
+                    
+                    analyses.append({
+                        "frame_number": frame.frame_number,
+                        "timestamp": frame.timestamp,
+                        "analysis": result.content,
+                        "tokens_used": result.tokens_used,
+                        "cost": result.cost
+                    })
+                    
+                    success = True
+                    break
+                    
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        wait_time = 10 * (2 ** attempt)
+                        logger.warning(f"⏱️ Rate limited, waiting {wait_time}s before retry {attempt + 1}...")
+                        await asyncio.sleep(wait_time)
+                    elif attempt == max_retries - 1:
+                        logger.warning(f"❌ Frame analysis failed after {max_retries} attempts")
+                        analyses.append({
+                            "frame_number": frame.frame_number,
+                            "timestamp": frame.timestamp,
+                            "analysis": f"Frame at {frame.timestamp:.1f}s - Analysis failed due to rate limiting",
+                            "tokens_used": 0,
+                            "cost": 0
+                        })
+                        success = True
+                        break
+                    else:
+                        raise e
         
         return analyses
     
     async def _analyze_subtitles(self, subtitles: List[SubtitleSegment]) -> List[Dict]:
-        """Analyze subtitle segments using GPT-OSS"""
+        """Analyze subtitle segments with rate limiting"""
         analyses = []
         
         # Group subtitles into chunks for context
@@ -206,31 +229,24 @@ Identify:
 
 Be concise but insightful."""
             
-            try:
-                # Use GPT-OSS for subtitle analysis
-                result = await self.fireworks_client.analyze_text(
-                    text=prompt,
-                    model_type="gpt_oss",
-                    max_tokens=200
-                )
-                
-                analyses.append({
-                    "subtitle_range": f"{chunk[0].start_time:.1f}s - {chunk[-1].end_time:.1f}s",
-                    "text_analyzed": combined_text,
-                    "analysis": result.content,
-                    "tokens_used": result.tokens_used,
-                    "cost": result.cost
-                })
-                
-            except Exception as e:
-                logger.warning(f"  Subtitle analysis failed: {e}")
-                # Try with smaller model as fallback
+            # Rate limiting with retries for subtitles
+            max_retries = 3
+            for attempt in range(max_retries):
                 try:
+                    # Add delay before each request
+                    delay = 3 + random.uniform(0, 2)  # 3-5 second delay for text analysis
+                    if attempt > 0:
+                        delay *= (2 ** attempt)  # Exponential backoff on retries
+                    
+                    await asyncio.sleep(delay)
+                    
+                    # Use GPT-OSS for subtitle analysis
                     result = await self.fireworks_client.analyze_text(
                         text=prompt,
-                        model_type="small",
-                        max_tokens=150
+                        model_type="gpt_oss",
+                        max_tokens=200
                     )
+                    
                     analyses.append({
                         "subtitle_range": f"{chunk[0].start_time:.1f}s - {chunk[-1].end_time:.1f}s",
                         "text_analyzed": combined_text,
@@ -238,14 +254,41 @@ Be concise but insightful."""
                         "tokens_used": result.tokens_used,
                         "cost": result.cost
                     })
-                except:
-                    analyses.append({
-                        "subtitle_range": f"{chunk[0].start_time:.1f}s - {chunk[-1].end_time:.1f}s",
-                        "text_analyzed": combined_text,
-                        "analysis": "Analysis failed",
-                        "tokens_used": 0,
-                        "cost": 0
-                    })
+                    break
+                    
+                except Exception as e:
+                    if "429" in str(e) and attempt < max_retries - 1:
+                        wait_time = 15 * (2 ** attempt)
+                        logger.warning(f"⏱️ Subtitle analysis rate limited, waiting {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                    elif attempt == max_retries - 1:
+                        logger.warning(f"❌ Subtitle analysis failed after {max_retries} attempts")
+                        # Try with smaller model as fallback
+                        try:
+                            await asyncio.sleep(5)  # Brief pause before fallback
+                            result = await self.fireworks_client.analyze_text(
+                                text=prompt,
+                                model_type="small",
+                                max_tokens=150
+                            )
+                            analyses.append({
+                                "subtitle_range": f"{chunk[0].start_time:.1f}s - {chunk[-1].end_time:.1f}s",
+                                "text_analyzed": combined_text,
+                                "analysis": result.content,
+                                "tokens_used": result.tokens_used,
+                                "cost": result.cost
+                            })
+                        except:
+                            analyses.append({
+                                "subtitle_range": f"{chunk[0].start_time:.1f}s - {chunk[-1].end_time:.1f}s",
+                                "text_analyzed": combined_text,
+                                "analysis": "Analysis failed due to rate limiting",
+                                "tokens_used": 0,
+                                "cost": 0
+                            })
+                        break
+                    else:
+                        raise e
         
         return analyses
     
@@ -254,23 +297,27 @@ Be concise but insightful."""
                                         frame_analyses: List[Dict],
                                         subtitles: List[SubtitleSegment],
                                         subtitle_analyses: List[Dict]) -> str:
-        """Generate comprehensive overall analysis using GPT-OSS"""
+        """Generate comprehensive overall analysis using GPT-OSS with rate limiting"""
         
         # Prepare summary of frame analyses
         frame_summary = ""
         if frame_analyses:
             frame_points = []
             for fa in frame_analyses[:5]:  # First 5 frames
-                frame_points.append(f"- At {fa['timestamp']:.1f}s: {fa['analysis'][:100]}...")
-            frame_summary = "Visual Analysis:\n" + "\n".join(frame_points)
+                if fa['analysis'] and not fa['analysis'].startswith('Frame at') and not 'failed' in fa['analysis'].lower():
+                    frame_points.append(f"- At {fa['timestamp']:.1f}s: {fa['analysis'][:100]}...")
+            if frame_points:
+                frame_summary = "Visual Analysis:\n" + "\n".join(frame_points)
         
         # Prepare summary of subtitle analyses
         subtitle_summary = ""
         if subtitle_analyses:
             sub_points = []
             for sa in subtitle_analyses[:3]:  # First 3 chunks
-                sub_points.append(f"- {sa['subtitle_range']}: {sa['analysis'][:100]}...")
-            subtitle_summary = "Dialogue/Audio Analysis:\n" + "\n".join(sub_points)
+                if sa['analysis'] and not 'failed' in sa['analysis'].lower():
+                    sub_points.append(f"- {sa['subtitle_range']}: {sa['analysis'][:100]}...")
+            if sub_points:
+                subtitle_summary = "Dialogue/Audio Analysis:\n" + "\n".join(sub_points)
         
         # Create comprehensive prompt
         prompt = f"""Based on the analysis of this video, provide a comprehensive summary.
@@ -293,27 +340,47 @@ Please provide:
 
 Be thorough but concise (max 300 words)."""
         
-        try:
-            # Try GPT-OSS first for best quality
-            result = await self.fireworks_client.analyze_text(
-                text=prompt,
-                model_type="gpt_oss",
-                max_tokens=400
-            )
-            return result.content
-            
-        except Exception as e:
-            logger.error(f"GPT-OSS analysis failed: {e}, trying fallback...")
-            # Fallback to smaller model
+        # Rate limiting for overall analysis
+        max_retries = 3
+        for attempt in range(max_retries):
             try:
+                # Add delay before request
+                delay = 5 + random.uniform(0, 3)  # 5-8 second delay
+                if attempt > 0:
+                    delay *= (2 ** attempt)
+                
+                await asyncio.sleep(delay)
+                
+                # Try GPT-OSS first for best quality
                 result = await self.fireworks_client.analyze_text(
                     text=prompt,
-                    model_type="small",
-                    max_tokens=300
+                    model_type="gpt_oss",
+                    max_tokens=400
                 )
                 return result.content
-            except:
-                return "Overall analysis could not be generated due to API errors."
+                
+            except Exception as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    wait_time = 20 * (2 ** attempt)
+                    logger.warning(f"⏱️ Overall analysis rate limited, waiting {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                elif attempt == max_retries - 1:
+                    logger.error(f"GPT-OSS analysis failed: {e}, trying fallback...")
+                    # Fallback to smaller model
+                    try:
+                        await asyncio.sleep(10)
+                        result = await self.fireworks_client.analyze_text(
+                            text=prompt,
+                            model_type="small",
+                            max_tokens=300
+                        )
+                        return result.content
+                    except:
+                        return "Overall analysis could not be generated due to API rate limiting issues."
+                else:
+                    raise e
+        
+        return "Overall analysis could not be generated due to API rate limiting issues."
     
     def save_results(self, results: VideoAnalysisResult, output_path: str = "video_analysis_results.json"):
         """Save analysis results to JSON file"""

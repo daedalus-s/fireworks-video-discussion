@@ -185,11 +185,11 @@ class FireworksClient:
             )
             
             # Extract response
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content or "Analysis failed - empty response"
             
             # Calculate tokens and cost
             input_tokens = len(text.split()) * 2
-            output_tokens = len(content.split()) * 2
+            output_tokens = len(content.split()) * 2 if content else 0
             
             if hasattr(response, 'usage'):
                 input_tokens = response.usage.prompt_tokens
