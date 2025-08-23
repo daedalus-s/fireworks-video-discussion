@@ -14,6 +14,7 @@ import random
 
 from fireworks_client import FireworksClient
 from video_analysis_system import VideoAnalysisResult
+from simple_api_manager import SimpleAPIManager  # or OptimizedAPIManager for speed
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -148,7 +149,7 @@ class MultiAgentDiscussion:
                 logger.info(f"{response[:200]}...")
                 
                 # Small delay for API rate limiting
-                await asyncio.sleep(0.5)
+                await self.api_manager.acquire() 
         
         return self.discussion_history
     

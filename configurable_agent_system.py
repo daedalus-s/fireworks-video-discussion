@@ -13,7 +13,7 @@ from datetime import datetime
 import random
 
 from fireworks_client import FireworksClient
-
+from simple_api_manager import SimpleAPIManager  # or OptimizedAPIManager for speed
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -285,7 +285,7 @@ class ConfigurableMultiAgentDiscussion:
         self.agents: List[CustomAgent] = []
         self.discussion_history: List[AgentDiscussionTurn] = []
         self.agent_configs_file = "agent_configurations.json"
-        
+        from simple_api_manager import SimpleAPIManager
         # Load saved agent configurations
         self._load_agent_configurations()
         
@@ -726,7 +726,7 @@ class ConfigurableMultiAgentDiscussion:
                 logger.info(f"{response[:200]}...")
                 
                 # Small delay for API rate limiting
-                await asyncio.sleep(0.5)
+                await self.api_manager.acquire() 
         
         self.discussion_history = discussion_turns
         return discussion_turns

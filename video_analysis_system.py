@@ -160,7 +160,7 @@ Be concise but specific."""
                     if attempt > 0:
                         delay *= (2 ** attempt)  # Exponential backoff on retries
                     
-                    await asyncio.sleep(delay)
+                    await self.api_manager.acquire() 
                     
                     result = await self.fireworks_client.analyze_frame(
                         base64_image=frame.base64_image,
@@ -183,7 +183,7 @@ Be concise but specific."""
                     if "429" in str(e) and attempt < max_retries - 1:
                         wait_time = 10 * (2 ** attempt)
                         logger.warning(f"⏱️ Rate limited, waiting {wait_time}s before retry {attempt + 1}...")
-                        await asyncio.sleep(wait_time)
+                        await self.api_manager.acquire() 
                     elif attempt == max_retries - 1:
                         logger.warning(f"❌ Frame analysis failed after {max_retries} attempts")
                         analyses.append({
@@ -238,7 +238,7 @@ Be concise but insightful."""
                     if attempt > 0:
                         delay *= (2 ** attempt)  # Exponential backoff on retries
                     
-                    await asyncio.sleep(delay)
+                    await self.api_manager.acquire() 
                     
                     # Use GPT-OSS for subtitle analysis
                     result = await self.fireworks_client.analyze_text(
@@ -260,12 +260,12 @@ Be concise but insightful."""
                     if "429" in str(e) and attempt < max_retries - 1:
                         wait_time = 15 * (2 ** attempt)
                         logger.warning(f"⏱️ Subtitle analysis rate limited, waiting {wait_time}s...")
-                        await asyncio.sleep(wait_time)
+                        await self.api_manager.acquire() 
                     elif attempt == max_retries - 1:
                         logger.warning(f"❌ Subtitle analysis failed after {max_retries} attempts")
                         # Try with smaller model as fallback
                         try:
-                            await asyncio.sleep(5)  # Brief pause before fallback
+                            await self.api_manager.acquire() 
                             result = await self.fireworks_client.analyze_text(
                                 text=prompt,
                                 model_type="small",
@@ -349,7 +349,7 @@ Be thorough but concise (max 300 words)."""
                 if attempt > 0:
                     delay *= (2 ** attempt)
                 
-                await asyncio.sleep(delay)
+                await self.api_manager.acquire() 
                 
                 # Try GPT-OSS first for best quality
                 result = await self.fireworks_client.analyze_text(
@@ -363,12 +363,12 @@ Be thorough but concise (max 300 words)."""
                 if "429" in str(e) and attempt < max_retries - 1:
                     wait_time = 20 * (2 ** attempt)
                     logger.warning(f"⏱️ Overall analysis rate limited, waiting {wait_time}s...")
-                    await asyncio.sleep(wait_time)
+                    await self.api_manager.acquire() 
                 elif attempt == max_retries - 1:
                     logger.error(f"GPT-OSS analysis failed: {e}, trying fallback...")
                     # Fallback to smaller model
                     try:
-                        await asyncio.sleep(10)
+                        await self.api_manager.acquire() 
                         result = await self.fireworks_client.analyze_text(
                             text=prompt,
                             model_type="small",
