@@ -285,7 +285,7 @@ class ConfigurableMultiAgentDiscussion:
         self.agents: List[CustomAgent] = []
         self.discussion_history: List[AgentDiscussionTurn] = []
         self.agent_configs_file = "agent_configurations.json"
-        from simple_api_manager import SimpleAPIManager
+        self.api_manager = SimpleAPIManager()
         # Load saved agent configurations
         self._load_agent_configurations()
         
@@ -686,6 +686,8 @@ class ConfigurableMultiAgentDiscussion:
         
         # Run discussion rounds
         for round_num in range(1, num_rounds + 1):
+            if round_num > 1:
+                await asyncio.sleep(3) 
             logger.info(f"\n{'='*50}")
             logger.info(f"ROUND {round_num}/{num_rounds}")
             logger.info(f"{'='*50}")

@@ -125,12 +125,31 @@ class OptimizedAPIManager:
     def __init__(self):
         # Different rate limiters for different API types
         self.rate_limiters = {
-            'vision': OptimizedRateLimiter(requests_per_second=1.0, burst_size=3, min_interval=0.5),
-            'text': OptimizedRateLimiter(requests_per_second=3.0, burst_size=10, min_interval=0.2),
-            'gpt_oss': OptimizedRateLimiter(requests_per_second=2.0, burst_size=5, min_interval=0.3),
-            'qwen3': OptimizedRateLimiter(requests_per_second=2.0, burst_size=5, min_interval=0.3),
-            'small': OptimizedRateLimiter(requests_per_second=5.0, burst_size=15, min_interval=0.1),
-            'embedding': OptimizedRateLimiter(requests_per_second=10.0, burst_size=30, min_interval=0.05)
+            'vision': OptimizedRateLimiter(
+                requests_per_second=0.5,  # Reduced from 1.0
+                burst_size=2,              # Reduced from 3
+                min_interval=2.0           # Increased from 0.5
+            ),
+            'text': OptimizedRateLimiter(
+                requests_per_second=0.8,   # Reduced from 3.0
+                burst_size=3,              # Reduced from 10
+                min_interval=1.0           # Increased from 0.2
+            ),
+            'gpt_oss': OptimizedRateLimiter(
+                requests_per_second=0.7,   # Reduced from 2.0
+                burst_size=2,              # Reduced from 5
+                min_interval=1.2           # Increased from 0.3
+            ),
+            'qwen3': OptimizedRateLimiter(
+                requests_per_second=0.7,   # Reduced from 2.0
+                burst_size=2,              # Reduced from 5
+                min_interval=1.2           # Increased from 0.3
+            ),
+            'small': OptimizedRateLimiter(
+                requests_per_second=2.0,   # Reduced from 5.0
+                burst_size=5,              # Reduced from 15
+                min_interval=0.5           # Increased from 0.1
+            )
         }
         
         # Track success/failure for dynamic adjustment
@@ -192,17 +211,19 @@ class OptimizedAPIManager:
     
     def _calculate_backoff(self, attempt: int, limiter: OptimizedRateLimiter) -> float:
         """Calculate intelligent backoff time"""
-        base_wait = 2 ** attempt
+        base_wait = 3 ** attempt
         jitter = random.uniform(0.5, 1.5)
         
         # Adjust based on recent rate limit frequency
         rate_limit_factor = 1.0
         if self.stats['rate_limits'] > 5:
-            rate_limit_factor = 1.5
+            rate_limit_factor = 2.0  # Increased from 1.5
         elif self.stats['rate_limits'] > 10:
-            rate_limit_factor = 2.0
+            rate_limit_factor = 3.0  # Increased from 2.0
+        elif self.stats['rate_limits'] > 15:
+            rate_limit_factor = 5.0  # New tier
         
-        return base_wait * jitter * rate_limit_factor
+        return min(base_wait * jitter * rate_limit_factor, 30.0)
     
     def _adjust_rates_on_success(self, limiter: OptimizedRateLimiter):
         """Gradually increase rates on success"""
