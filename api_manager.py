@@ -22,7 +22,7 @@ class SimpleAPIManager:
     
     def __init__(self):
         self.last_call_time = 0
-        self.min_delay = 0.5  # Minimum 0.5s between calls
+        self.min_delay = 5  # Minimum 0.5s between calls
         
     async def acquire(self):
         """Simple rate limiting"""

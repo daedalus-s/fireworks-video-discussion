@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Integrated Configurable Agent Pipeline
-Combines your existing video analysis with configurable multi-agent system
+Integrated Configurable Agent Pipeline - FIXED VERSION
+Combines enhanced video analysis with configurable multi-agent system
+FIXES: Data flow issue between enhanced analysis and agent discussion
 """
 
 import os
@@ -21,16 +22,15 @@ from configurable_agent_system import (
 
 # Import your existing analysis modules
 try:
-    from integrated_rag_pipeline import ComprehensiveRAGPipeline
-    from rag_enhanced_vector_system import RAGQueryInterface
     from enhanced_descriptive_analysis import analyze_video_highly_descriptive
+    from rag_enhanced_vector_system import RAGQueryInterface
     ANALYSIS_MODULES_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Warning: Analysis modules not fully available: {e}")
+    print(f"Warning: Analysis modules not fully available: {e}")
     ANALYSIS_MODULES_AVAILABLE = False
 
 class IntegratedConfigurableAnalysisPipeline:
-    """Enhanced pipeline with configurable agents and full video analysis"""
+    """Enhanced pipeline with configurable agents and full video analysis - FIXED DATA FLOW"""
     
     def __init__(self, 
                  analysis_depth: str = "comprehensive",
@@ -42,24 +42,19 @@ class IntegratedConfigurableAnalysisPipeline:
         # Initialize configurable agent system
         self.agent_system = ConfigurableMultiAgentDiscussion()
         
-        # Initialize existing analysis systems if available
-        if ANALYSIS_MODULES_AVAILABLE:
+        # Initialize RAG interface if available and enabled
+        self.rag_interface = None
+        if enable_rag and ANALYSIS_MODULES_AVAILABLE:
             try:
-                self.rag_pipeline = ComprehensiveRAGPipeline(
-                    analysis_depth=analysis_depth,
-                    enable_rag=enable_rag
-                )
-                self.rag_interface = RAGQueryInterface() if enable_rag else None
-                print("✅ Full analysis pipeline initialized")
+                self.rag_interface = RAGQueryInterface()
+                print("RAG system enabled")
             except Exception as e:
-                print(f"⚠️ RAG pipeline initialization failed: {e}")
-                self.rag_pipeline = None
-                self.rag_interface = None
+                print(f"Warning: RAG system initialization failed: {e}")
+                self.enable_rag = False
         else:
-            self.rag_pipeline = None
-            self.rag_interface = None
+            self.enable_rag = False
         
-        print("✅ Integrated Configurable Analysis Pipeline initialized")
+        print("Integrated Configurable Analysis Pipeline initialized")
     
     def setup_agents_for_content_type(self, content_type: str) -> bool:
         """Setup agents based on content type"""
@@ -73,8 +68,6 @@ class IntegratedConfigurableAnalysisPipeline:
             "marketing": "marketing",
             "commercial": "marketing",
             "advertisement": "marketing",
-            "technical": "technical_docs",
-            "documentation": "technical_docs",
             "default": None
         }
         
@@ -84,11 +77,11 @@ class IntegratedConfigurableAnalysisPipeline:
             template_agents = load_agent_template(template_name)
             if template_agents:
                 self.agent_system.agents = template_agents
-                print(f"✅ Loaded {len(template_agents)} agents for {content_type} content")
+                print(f"Loaded {len(template_agents)} agents for {content_type} content")
                 return True
         
         # Keep default agents if no template found
-        print(f"ℹ️ Using default agents for {content_type} content")
+        print(f"Using default agents for {content_type} content")
         return False
     
     async def analyze_video_with_configurable_agents(self,
@@ -102,7 +95,7 @@ class IntegratedConfigurableAnalysisPipeline:
                                                     agent_template: Optional[str] = None,
                                                     output_dir: str = "configurable_analysis_output") -> Dict[str, Any]:
         """
-        Complete analysis with configurable agents
+        Complete analysis with configurable agents - FIXED DATA FLOW
         
         Args:
             video_path: Path to video file
@@ -125,7 +118,7 @@ class IntegratedConfigurableAnalysisPipeline:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         print("\n" + "="*90)
-        print("🎬 INTEGRATED CONFIGURABLE AGENT VIDEO ANALYSIS PIPELINE")
+        print("INTEGRATED CONFIGURABLE AGENT VIDEO ANALYSIS PIPELINE")
         print("="*90)
         print(f"Video: {video_path}")
         print(f"Analysis depth: {self.analysis_depth.upper()}")
@@ -140,7 +133,7 @@ class IntegratedConfigurableAnalysisPipeline:
             template_agents = load_agent_template(agent_template)
             if template_agents:
                 self.agent_system.agents = template_agents
-                print(f"✅ Loaded agent template: {agent_template}")
+                print(f"Loaded agent template: {agent_template}")
         elif content_type:
             self.setup_agents_for_content_type(content_type)
         
@@ -149,7 +142,7 @@ class IntegratedConfigurableAnalysisPipeline:
         if selected_agents:
             participating_agents = [a for a in self.agent_system.agents if a.name in selected_agents]
         
-        print(f"\n🤖 CONFIGURED AGENTS ({len(participating_agents)}):")
+        print(f"\nCONFIGURED AGENTS ({len(participating_agents)}):")
         print("-"*60)
         for agent in participating_agents:
             print(f"  {agent.emoji} {agent.name} ({agent.role}) - Model: {agent.model}")
@@ -157,42 +150,57 @@ class IntegratedConfigurableAnalysisPipeline:
             print(f"    Focus: {', '.join(agent.focus_areas[:2])}")
         
         # Phase 1: Enhanced descriptive analysis (if available)
-        video_analysis_results = None
-        if ANALYSIS_MODULES_AVAILABLE and self.rag_pipeline:
-            print("\n📊 PHASE 1: ENHANCED DESCRIPTIVE ANALYSIS")
+        enhanced_analysis_results = None
+        if ANALYSIS_MODULES_AVAILABLE:
+            print("\nPHASE 1: ENHANCED DESCRIPTIVE ANALYSIS")
             print("-"*60)
             
-            try:
-                video_analysis_results = await analyze_video_highly_descriptive(
-                    video_path=video_path,
-                    subtitle_path=subtitle_path,
-                    max_frames=max_frames,
-                    fps_extract=fps_extract,
-                    analysis_depth=self.analysis_depth,
-                    enable_vector_search=True,
-                    output_dir=output_dir
-                )
-                print("✅ Enhanced descriptive analysis complete")
-                
-            except Exception as e:
-                print(f"⚠️ Enhanced analysis failed, using basic analysis: {e}")
-                video_analysis_results = self._create_basic_video_analysis(
-                    video_path, max_frames, subtitle_path
-                )
+        try:
+            enhanced_analysis_results = await analyze_video_highly_descriptive(
+                video_path=video_path,
+                subtitle_path=subtitle_path,
+                max_frames=max_frames,
+                fps_extract=fps_extract,
+                analysis_depth=self.analysis_depth,
+                enable_vector_search=True,
+                output_dir=output_dir
+            )
+            print("Enhanced descriptive analysis complete")
+            
+            # DEBUG: Inspect what we actually got back
+            print("\n🔍 DEBUGGING: Inspecting enhanced_analysis_results...")
+            self._debug_enhanced_results(enhanced_analysis_results)
+            
+        except Exception as e:
+            print(f"Warning: Enhanced analysis failed, using basic analysis: {e}")
+            enhanced_analysis_results = self._create_basic_video_analysis(
+                video_path, max_frames, subtitle_path
+            )
         else:
-            print("\n📊 PHASE 1: BASIC VIDEO ANALYSIS")
+            print("\nPHASE 1: BASIC VIDEO ANALYSIS")
             print("-"*60)
-            video_analysis_results = self._create_basic_video_analysis(
+            enhanced_analysis_results = self._create_basic_video_analysis(
                 video_path, max_frames, subtitle_path
             )
         
+        # CRITICAL FIX: Convert enhanced analysis results to proper format for agents
+        video_analysis_for_agents = self._convert_enhanced_results_for_agents(enhanced_analysis_results)
+        
+        # DEBUG: Show what data we're passing to agents
+        print(f"\nDEBUG: Data being passed to agents:")
+        print(f"  frame_count: {video_analysis_for_agents.get('frame_count', 'MISSING')}")
+        print(f"  subtitle_count: {video_analysis_for_agents.get('subtitle_count', 'MISSING')}")
+        print(f"  frame_analyses length: {len(video_analysis_for_agents.get('frame_analyses', []))}")
+        print(f"  overall_analysis length: {len(video_analysis_for_agents.get('overall_analysis', ''))}")
+        
         # Phase 2: Configurable multi-agent discussion
-        print("\n💬 PHASE 2: CONFIGURABLE MULTI-AGENT DISCUSSION")
+        print("\nPHASE 2: CONFIGURABLE MULTI-AGENT DISCUSSION")
         print("-"*60)
         
         try:
+            # FIXED: Pass the properly formatted analysis data
             discussion_turns = await self.agent_system.conduct_discussion(
-                video_analysis=video_analysis_results,
+                video_analysis=video_analysis_for_agents,  # Use converted data
                 num_rounds=discussion_rounds,
                 selected_agents=selected_agents
             )
@@ -201,65 +209,180 @@ class IntegratedConfigurableAnalysisPipeline:
             discussion_file = output_path / f"configurable_discussion_{timestamp}.json"
             self._save_configurable_discussion(discussion_turns, str(discussion_file))
             
-            print(f"✅ Configurable agent discussion saved to: {discussion_file}")
+            print(f"Configurable agent discussion saved to: {discussion_file}")
             
         except Exception as e:
-            print(f"❌ Agent discussion failed: {e}")
+            print(f"Agent discussion failed: {e}")
             discussion_turns = []
         
         # Phase 3: RAG indexing (if enabled and available)
         rag_status = "Not enabled"
-        if self.enable_rag and ANALYSIS_MODULES_AVAILABLE and self.rag_interface:
-            print("\n🧠 PHASE 3: RAG INDEXING (Configurable Agent Perspectives)")
+        if self.enable_rag and self.rag_interface:
+            print("\nPHASE 3: RAG INDEXING (Configurable Agent Perspectives)")
             print("-"*60)
             
             try:
                 # Index with configurable agent perspectives
                 rag_status = await self._index_configurable_agents_for_rag(
-                    video_analysis_results, discussion_turns
+                    video_analysis_for_agents, discussion_turns
                 )
                 print(rag_status)
                 
             except Exception as e:
-                print(f"❌ RAG indexing failed: {e}")
+                print(f"RAG indexing failed: {e}")
                 rag_status = f"Failed: {e}"
         
         # Phase 4: Generate comprehensive report
-        print("\n📄 PHASE 4: CONFIGURABLE AGENT ANALYSIS REPORT")
+        print("\nPHASE 4: CONFIGURABLE AGENT ANALYSIS REPORT")
         print("-"*60)
         
         try:
             report = self._generate_configurable_report(
-                video_analysis_results, discussion_turns, participating_agents,
+                video_analysis_for_agents, discussion_turns, participating_agents,
                 rag_status, timestamp, output_path
             )
             
-            print("✅ Configurable agent analysis report generated")
+            print("Configurable agent analysis report generated")
             
         except Exception as e:
-            print(f"❌ Report generation failed: {e}")
+            print(f"Report generation failed: {e}")
             report = {"error": str(e)}
         
         print("\n" + "="*90)
-        print("✅ CONFIGURABLE AGENT ANALYSIS PIPELINE COMPLETE!")
+        print("CONFIGURABLE AGENT ANALYSIS PIPELINE COMPLETE!")
         print("="*90)
-        print(f"📁 All outputs saved to: {output_dir}")
-        print(f"🤖 Agents participated: {len(participating_agents)}")
-        print(f"💬 Discussion turns: {len(discussion_turns)}")
+        print(f"All outputs saved to: {output_dir}")
+        print(f"Agents participated: {len(participating_agents)}")
+        print(f"Discussion turns: {len(discussion_turns)}")
         
-        if self.enable_rag and rag_status.startswith("✅"):
-            print(f"\n🧠 RAG CAPABILITIES NOW AVAILABLE:")
+        if self.enable_rag and rag_status.startswith("Successfully"):
+            print(f"\nRAG CAPABILITIES NOW AVAILABLE:")
             print("   • Query specific configurable agent perspectives")
             print("   • Search by agent name, role, or expertise area")
             print("   • Find frame-specific insights from custom agents")
             print("   • Temporal queries with agent-specific context")
             
-            print(f"\n🔍 EXAMPLE QUERIES WITH YOUR CONFIGURED AGENTS:")
+            print(f"\nEXAMPLE QUERIES WITH YOUR CONFIGURED AGENTS:")
             for agent in participating_agents[:3]:  # Show examples for first 3 agents
                 print(f"   python query_video_rag.py 'What did {agent.name} say about [topic]?'")
             print(f"   python query_video_rag.py 'When did the {participating_agents[0].role.lower()} mention [concept]?'")
         
         return report
+    
+    def _debug_enhanced_results(self, enhanced_results):
+        """Debug function to inspect the actual structure of enhanced_results"""
+        print("\n" + "="*60)
+        print("DEBUGGING ENHANCED RESULTS STRUCTURE")
+        print("="*60)
+        
+        print(f"Type of enhanced_results: {type(enhanced_results)}")
+        print(f"Is dict: {isinstance(enhanced_results, dict)}")
+        print(f"Has __dict__: {hasattr(enhanced_results, '__dict__')}")
+        print(f"Has attributes: {dir(enhanced_results)[:10] if hasattr(enhanced_results, '__dict__') else 'No attributes'}")
+        
+        # If it's a dict, show keys
+        if isinstance(enhanced_results, dict):
+            print(f"Dictionary keys: {list(enhanced_results.keys())}")
+            for key in ['frame_count', 'subtitle_count', 'frame_analyses', 'overall_analysis']:
+                if key in enhanced_results:
+                    value = enhanced_results[key]
+                    if key in ['frame_analyses', 'subtitle_analyses']:
+                        print(f"  {key}: type={type(value)}, length={len(value) if hasattr(value, '__len__') else 'N/A'}")
+                    else:
+                        print(f"  {key}: {value}")
+                else:
+                    print(f"  {key}: MISSING")
+        
+        # If it's an object, show attributes
+        elif hasattr(enhanced_results, '__dict__'):
+            attrs = enhanced_results.__dict__
+            print(f"Object attributes: {list(attrs.keys())}")
+            for key in ['frame_count', 'subtitle_count', 'frame_analyses', 'overall_analysis']:
+                if hasattr(enhanced_results, key):
+                    value = getattr(enhanced_results, key)
+                    if key in ['frame_analyses', 'subtitle_analyses']:
+                        print(f"  {key}: type={type(value)}, length={len(value) if hasattr(value, '__len__') else 'N/A'}")
+                    else:
+                        print(f"  {key}: {value}")
+                else:
+                    print(f"  {key}: MISSING")
+        
+        # Show the actual content if it's something else
+        else:
+            print(f"Content: {str(enhanced_results)[:500]}...")
+        
+        print("="*60)
+
+    def _convert_enhanced_results_for_agents(self, enhanced_results: Any) -> Dict[str, Any]:
+        """
+        CRITICAL FIX: Convert enhanced analysis results to format expected by agents
+        """
+        
+        # Check if enhanced_results is a dict or an object with attributes
+        if isinstance(enhanced_results, dict):
+            # Already a dictionary - use as is but ensure all required fields
+            result = enhanced_results.copy()
+        else:
+            # It's likely an EnhancedVideoAnalysisResult object - convert to dict
+            if hasattr(enhanced_results, '__dict__'):
+                result = enhanced_results.__dict__.copy()
+            elif hasattr(enhanced_results, 'to_dict'):
+                result = enhanced_results.to_dict()
+            else:
+                # Try to extract data from object attributes
+                result = {
+                    'video_path': getattr(enhanced_results, 'video_path', 'unknown'),
+                    'frame_count': getattr(enhanced_results, 'frame_count', 0),
+                    'subtitle_count': getattr(enhanced_results, 'subtitle_count', 0),
+                    'frame_analyses': getattr(enhanced_results, 'frame_analyses', []),
+                    'subtitle_analyses': getattr(enhanced_results, 'subtitle_analyses', []),
+                    'overall_analysis': getattr(enhanced_results, 'overall_analysis', ''),
+                    'scene_breakdown': getattr(enhanced_results, 'scene_breakdown', []),
+                    'visual_elements': getattr(enhanced_results, 'visual_elements', {}),
+                    'content_categories': getattr(enhanced_results, 'content_categories', []),
+                    'processing_time': getattr(enhanced_results, 'processing_time', 0),
+                    'total_cost': getattr(enhanced_results, 'total_cost', 0),
+                    'timestamp': getattr(enhanced_results, 'timestamp', datetime.now().isoformat())
+                }
+        
+        # Ensure all required fields exist with proper defaults
+        required_fields = {
+            'video_path': 'unknown',
+            'frame_count': 0,
+            'subtitle_count': 0,
+            'frame_analyses': [],
+            'subtitle_analyses': [],
+            'overall_analysis': '',
+            'scene_breakdown': [],
+            'visual_elements': {},
+            'content_categories': [],
+            'processing_time': 0,
+            'total_cost': 0,
+            'timestamp': datetime.now().isoformat(),
+            'analysis_depth': self.analysis_depth
+        }
+        
+        for field, default_value in required_fields.items():
+            if field not in result or result[field] is None:
+                result[field] = default_value
+        
+        # Validate and clean frame_analyses
+        if result['frame_analyses']:
+            cleaned_frames = []
+            for frame in result['frame_analyses']:
+                if isinstance(frame, dict) and frame.get('analysis'):
+                    cleaned_frames.append(frame)
+            result['frame_analyses'] = cleaned_frames
+        
+        # Validate and clean subtitle_analyses  
+        if result['subtitle_analyses']:
+            cleaned_subtitles = []
+            for subtitle in result['subtitle_analyses']:
+                if isinstance(subtitle, dict) and subtitle.get('analysis'):
+                    cleaned_subtitles.append(subtitle)
+            result['subtitle_analyses'] = cleaned_subtitles
+        
+        return result
     
     def _create_basic_video_analysis(self, video_path: str, max_frames: int, subtitle_path: Optional[str]) -> Dict[str, Any]:
         """Create basic video analysis when full pipeline is not available"""
@@ -282,22 +405,28 @@ class IntegratedConfigurableAnalysisPipeline:
                     "analysis": "Dialogue content suitable for multi-perspective agent analysis."
                 }
             ] if subtitle_path else [],
-            "overall_analysis": f"Video content from {video_path} ready for configurable agent analysis with {len(self.agent_system.agents)} specialized agents."
+            "overall_analysis": f"Video content from {video_path} ready for configurable agent analysis with {len(self.agent_system.agents)} specialized agents.",
+            "scene_breakdown": [],
+            "visual_elements": {},
+            "content_categories": [],
+            "processing_time": 0,
+            "total_cost": 0,
+            "timestamp": datetime.now().isoformat()
         }
     
-    async def _index_configurable_agents_for_rag(self, video_analysis: Dict[str, Any], discussion_turns: List) -> str:
+    async def _index_configurable_agents_for_rag(self, video_analysis: Dict[str, Any], discussion_turns: List[Any]) -> str:
         """Index configurable agent perspectives for RAG"""
         if not self.rag_interface:
-            return "❌ RAG interface not available"
+            return "RAG interface not available"
         
         try:
             # Use existing RAG indexing but with configurable agents
             status = await self.rag_interface.rag_system.index_video_for_rag(video_analysis, discussion_turns)
-            return f"✅ Successfully indexed video with {len(self.agent_system.agents)} configurable agent perspectives"
+            return f"Successfully indexed video with {len(self.agent_system.agents)} configurable agent perspectives"
         except Exception as e:
-            return f"❌ RAG indexing failed: {e}"
+            return f"RAG indexing failed: {e}"
     
-    def _save_configurable_discussion(self, discussion_turns: List, output_path: str):
+    def _save_configurable_discussion(self, discussion_turns: List[Any], output_path: str):
         """Save discussion with configurable agent metadata"""
         discussion_data = {
             "timestamp": datetime.now().isoformat(),
@@ -324,7 +453,7 @@ class IntegratedConfigurableAnalysisPipeline:
                     "content": turn.content,
                     "round_number": turn.round_number,
                     "timestamp": turn.timestamp,
-                    "responding_to": turn.responding_to
+                    "responding_to": getattr(turn, 'responding_to', None)
                 }
                 for turn in discussion_turns
             ]
@@ -334,7 +463,7 @@ class IntegratedConfigurableAnalysisPipeline:
             json.dump(discussion_data, f, indent=2, ensure_ascii=False)
     
     def _generate_configurable_report(self, video_analysis: Dict[str, Any], 
-                                    discussion_turns: List, participating_agents: List,
+                                    discussion_turns: List[Any], participating_agents: List[Any],
                                     rag_status: str, timestamp: str, output_path: Path) -> Dict[str, Any]:
         """Generate comprehensive report with configurable agent insights"""
         
@@ -380,7 +509,7 @@ class IntegratedConfigurableAnalysisPipeline:
                 "subtitle_segments": video_analysis.get("subtitle_count", 0),
                 "discussion_turns": len(discussion_turns),
                 "discussion_rounds": max([turn.round_number for turn in discussion_turns]) if discussion_turns else 0,
-                "processing_time": "N/A",  # Could be calculated
+                "processing_time": video_analysis.get("processing_time", 0),
                 "total_cost": video_analysis.get("total_cost", 0)
             },
             
@@ -388,7 +517,7 @@ class IntegratedConfigurableAnalysisPipeline:
                 "agent_contributions": {
                     turn.agent_name: len([t for t in discussion_turns if t.agent_name == turn.agent_name])
                     for turn in discussion_turns
-                },
+                } if discussion_turns else {},
                 "expertise_coverage": {
                     agent.name: agent.expertise for agent in participating_agents
                 },
@@ -404,19 +533,18 @@ class IntegratedConfigurableAnalysisPipeline:
             "rag_capabilities": {
                 "enabled": self.enable_rag,
                 "indexing_status": rag_status,
-                "configurable_agent_search": self.enable_rag and rag_status.startswith("✅"),
+                "configurable_agent_search": self.enable_rag and rag_status.startswith("Successfully"),
                 "query_examples": [
                     f"What did {agent.name} say about [topic]?"
                     for agent in participating_agents[:3]
                 ] + [
                     f"When did the {participating_agents[0].role.lower()} discuss [concept]?",
                     f"How did {participating_agents[-1].name} analyze [element]?",
-                    f"At what frame did agents with {participating_agents[0].expertise[0]} expertise comment?"
                 ] if participating_agents else []
             },
             
             "customization_features": {
-                "agent_templates_available": ["film_analysis", "educational", "marketing", "technical_docs"],
+                "agent_templates_available": ["film_analysis", "educational", "marketing"],
                 "custom_agent_creation": True,
                 "agent_expertise_customization": True,
                 "discussion_style_customization": True,
@@ -447,17 +575,6 @@ class IntegratedConfigurableAnalysisPipeline:
                 f.write(f"  Focus: {', '.join(agent.focus_areas[:3])}\n")
                 f.write(f"  Style: {agent.discussion_style[:60]}...\n\n")
             
-            f.write("CONFIGURABLE FEATURES\n")
-            f.write("-"*40 + "\n")
-            f.write("✅ Custom agent personalities and roles\n")
-            f.write("✅ Flexible expertise areas and focus\n")
-            f.write("✅ Multiple AI models per discussion\n")
-            f.write("✅ Agent template system\n")
-            f.write("✅ Interactive agent configuration\n")
-            if self.enable_rag:
-                f.write("✅ RAG-enhanced agent perspective search\n")
-            f.write("\n")
-            
             f.write("ANALYSIS RESULTS\n")
             f.write("-"*40 + "\n")
             summary = report["analysis_summary"]
@@ -466,7 +583,7 @@ class IntegratedConfigurableAnalysisPipeline:
             f.write(f"Participating agents: {report['configurable_agent_features']['agents_participated']}\n")
             f.write(f"Models used: {', '.join(report['configurable_agent_features']['models_used'])}\n\n")
             
-            if self.enable_rag and rag_status.startswith("✅"):
+            if self.enable_rag and rag_status.startswith("Successfully"):
                 f.write("RAG QUERY EXAMPLES\n")
                 f.write("-"*40 + "\n")
                 for example in report["rag_capabilities"]["query_examples"][:6]:
@@ -475,8 +592,8 @@ class IntegratedConfigurableAnalysisPipeline:
             
             f.write(f"Total cost: ${report['analysis_summary']['total_cost']:.4f}\n")
         
-        print(f"✅ Configurable agent report saved to: {report_file}")
-        print(f"✅ Summary saved to: {summary_file}")
+        print(f"Configurable agent report saved to: {report_file}")
+        print(f"Summary saved to: {summary_file}")
         
         return report
 
@@ -484,7 +601,7 @@ class IntegratedConfigurableAnalysisPipeline:
 async def main():
     """Main entry point for configurable agent video analysis"""
     parser = argparse.ArgumentParser(
-        description="Integrated Configurable Agent Video Analysis Pipeline",
+        description="Integrated Configurable Agent Video Analysis Pipeline - FIXED VERSION",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -497,9 +614,6 @@ Examples:
   # Educational content with custom agents
   python integrated_configurable_pipeline.py video.mp4 --content-type educational
   
-  # Configure agents interactively then analyze
-  python integrated_configurable_pipeline.py video.mp4 --configure-agents
-  
   # Select specific agents for discussion
   python integrated_configurable_pipeline.py video.mp4 --agents "Alex,Maya"
   
@@ -510,13 +624,11 @@ Agent Templates Available:
   film_analysis    - Cinematographer, Film Critic, Sound Designer
   educational      - Learning Specialist, Subject Expert, Engagement Analyst  
   marketing        - Brand Strategist, Conversion Specialist, Creative Director
-  technical_docs   - Technical Writer, UX Researcher
 
 Content Types (auto-selects appropriate template):
   film, movie, cinema          -> film_analysis template
   educational, tutorial        -> educational template
   marketing, commercial        -> marketing template
-  technical, documentation     -> technical_docs template
         """
     )
     
@@ -531,20 +643,27 @@ Content Types (auto-selects appropriate template):
     parser.add_argument("--no-rag", action="store_true", help="Disable RAG indexing")
     
     # Agent configuration options
-    parser.add_argument("--configure-agents", action="store_true", help="Configure agents interactively before analysis")
-    parser.add_argument("--template", choices=["film_analysis", "educational", "marketing", "technical_docs"], 
+    parser.add_argument("--template", choices=["film_analysis", "educational", "marketing"], 
                        help="Load predefined agent template")
     parser.add_argument("--content-type", help="Content type (auto-selects template)")
     parser.add_argument("--agents", help="Comma-separated list of specific agents to include")
-    parser.add_argument("--list-agents", action="store_true", help="List configured agents and exit")
-    parser.add_argument("--list-templates", action="store_true", help="List available templates and exit")
     
     args = parser.parse_args()
     
-    # Handle list commands
-    if args.list_templates:
-        show_available_templates()
-        return 0
+    # Validate video file
+    if not os.path.exists(args.video):
+        print(f"Error: Video file not found: {args.video}")
+        return 1
+    
+    # Check subtitle file
+    if args.subtitles and not os.path.exists(args.subtitles):
+        print(f"Warning: Subtitle file not found: {args.subtitles}")
+        args.subtitles = None
+    
+    # Parse selected agents
+    selected_agents = None
+    if args.agents:
+        selected_agents = [name.strip() for name in args.agents.split(",")]
     
     # Initialize pipeline
     pipeline = IntegratedConfigurableAnalysisPipeline(
@@ -552,42 +671,8 @@ Content Types (auto-selects appropriate template):
         enable_rag=not args.no_rag
     )
     
-    if args.list_agents:
-        print(f"\nConfigured agents ({len(pipeline.agent_system.agents)}):")
-        for agent in pipeline.agent_system.agents:
-            print(f"  {agent.emoji} {agent.name} ({agent.role}) - {agent.model}")
-            print(f"    Expertise: {', '.join(agent.expertise[:4])}")
-        return 0
-    
-    # Validate video file
-    if not os.path.exists(args.video):
-        print(f"❌ Error: Video file not found: {args.video}")
-        return 1
-    
-    # Check subtitle file
-    if args.subtitles and not os.path.exists(args.subtitles):
-        print(f"⚠️ Warning: Subtitle file not found: {args.subtitles}")
-        args.subtitles = None
-    
-    # Interactive agent configuration
-    if args.configure_agents:
-        print("🤖 Interactive Agent Configuration")
-        pipeline.agent_system.configure_agents_interactive()
-    
-    # Parse selected agents
-    selected_agents = None
-    if args.agents:
-        selected_agents = [name.strip() for name in args.agents.split(",")]
-        # Validate agent names
-        available_names = [agent.name for agent in pipeline.agent_system.agents]
-        invalid_agents = [name for name in selected_agents if name not in available_names]
-        if invalid_agents:
-            print(f"❌ Invalid agent names: {invalid_agents}")
-            print(f"Available agents: {', '.join(available_names)}")
-            return 1
-    
     # Show configuration summary
-    print(f"\n🎬 CONFIGURABLE AGENT VIDEO ANALYSIS")
+    print(f"\nCONFIGURABLE AGENT VIDEO ANALYSIS")
     print("="*70)
     print(f"Video: {args.video}")
     print(f"Subtitles: {args.subtitles or 'None'}")
@@ -613,58 +698,28 @@ Content Types (auto-selects appropriate template):
             output_dir=args.output
         )
         
-        print(f"\n🎉 Configurable agent analysis complete!")
-        print(f"📁 Results saved to: {args.output}")
+        print(f"\nConfigurable agent analysis complete!")
+        print(f"Results saved to: {args.output}")
         
         # Show agent contribution summary
         if "agent_insights_summary" in results:
             contributions = results["agent_insights_summary"]["agent_contributions"]
-            print(f"\n🤖 Agent Contributions:")
+            print(f"\nAgent Contributions:")
             for agent_name, count in contributions.items():
-                agent = pipeline.agent_system.get_agent(agent_name)
-                emoji = agent.emoji if agent else "🤖"
-                print(f"  {emoji} {agent_name}: {count} contributions")
+                print(f"  {agent_name}: {count} contributions")
         
         return 0
         
     except KeyboardInterrupt:
-        print("\n\n⏹️ Analysis interrupted by user")
+        print("\n\nAnalysis interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Analysis failed: {e}")
+        print(f"\nAnalysis failed: {e}")
         import traceback
         traceback.print_exc()
         return 1
 
-# Quick setup utilities
-def quick_setup_for_content_type(content_type: str):
-    """Quick setup utility for specific content types"""
-    pipeline = IntegratedConfigurableAnalysisPipeline()
-    
-    print(f"🚀 Quick Setup for {content_type.title()} Content")
-    print("="*50)
-    
-    success = pipeline.setup_agents_for_content_type(content_type)
-    
-    if success:
-        print(f"\n✅ Agents configured for {content_type} analysis:")
-        for agent in pipeline.agent_system.agents:
-            print(f"  {agent.emoji} {agent.name} ({agent.role})")
-            print(f"    Expertise: {', '.join(agent.expertise[:3])}")
-    
-    # Save configuration
-    config_file = f"{content_type}_agent_config.json"
-    pipeline.agent_system.export_agent_configuration(config_file)
-    print(f"\n💾 Configuration saved to: {config_file}")
-    
-    return pipeline
-
 if __name__ == "__main__":
     import sys
-    
-    if len(sys.argv) > 1 and sys.argv[1] in ["setup-film", "setup-educational", "setup-marketing", "setup-technical"]:
-        content_type = sys.argv[1].replace("setup-", "")
-        quick_setup_for_content_type(content_type)
-    else:
-        exit_code = asyncio.run(main())
-        sys.exit(exit_code)
+    exit_code = asyncio.run(main())
+    sys.exit(exit_code)
