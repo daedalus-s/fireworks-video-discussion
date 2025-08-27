@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Analysis Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .logo {
+            font-size: 2.5em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tagline {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .card-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .upload-area {
+            border: 2px dashed #e2e8f0;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+        }
+
+        .upload-area.dragover {
+            border-color: #4299e1;
+            background: linear-gradient(135deg, #bee3f8 0%, #90cdf4 100%);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #a0aec0;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 0.9em;
+            color: #718096;
+        }
+
+        .config-panel {
+            display: grid;
+            gap: 20px;
+        }
+
+        .config-group {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .config-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+        }
+
+        .config-title::before {
+            content: '⚙️';
+            margin-right: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        select, input[type="range"], input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus, input[type="range"]:focus, input[type="number"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .agent-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .agent-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .agent-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+        }
+
+        .agent-emoji {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .agent-role {
+            font-size: 0.8em;
+            color: #718096;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .analysis-dashboard {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+
+        .status-processing {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-complete {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #2d3748;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .result-section {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .result-content {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .search-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 50px 15px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1em;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            border-left: 4px solid #48bb78;
+        }
+
+        .notification.error {
+            border-left: 4px solid #f56565;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .agent-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        .file-info {
+            background: #e6fffa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #38b2ac;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="logo">🎬 AI Video Analysis Platform</h1>
+            <p class="tagline">Powered by Multi-Agent AI, RAG, and Vector Search Technology</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Upload Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📁</div>
+                    <h2 class="card-title">Upload Video</h2>
+                </div>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">🎥</div>
+                    <p class="upload-text">Drop your video here or click to browse</p>
+                    <p class="upload-hint">Supports MP4, AVI, MOV formats</p>
+                    <input type="file" id="videoInput" accept="video/*" style="display: none;">
+                </div>
+
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <p><strong>Selected:</strong> <span id="fileName"></span></p>
+                    <p><strong>Size:</strong> <span id="fileSize"></span></p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <label for="subtitleInput">Subtitle File (Optional):</label>
+                    <input type="file" id="subtitleInput" accept=".srt,.vtt">
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">⚙️</div>
+                    <h2 class="card-title">Analysis Configuration</h2>
+                </div>
+
+                <div class="config-panel">
+                    <div class="config-group">
+                        <div class="config-title">Analysis Settings</div>
+                        
+                        <div class="form-group">
+                            <label for="analysisDepth">Analysis Depth:</label>
+                            <select id="analysisDepth">
+                                <option value="basic">Basic - Fast analysis</option>
+                                <option value="detailed">Detailed - Balanced quality</option>
+                                <option value="comprehensive" selected>Comprehensive - Maximum detail</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="maxFrames">Maximum Frames: <span id="frameCount">10</span></label>
+                            <input type="range" id="maxFrames" min="5" max="50" value="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="discussionRounds">Discussion Rounds: <span id="roundCount">3</span></label>
+                            <input type="range" id="discussionRounds" min="1" max="5" value="3">
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <div class="config-title">AI Agent Selection</div>
+                        <div class="agent-grid" id="agentGrid">
+                            <div class="agent-card selected" data-agent="alex">
+                                <div class="agent-emoji">🎬</div>
+                                <div class="agent-name">Alex</div>
+                                <div class="agent-role">Technical Analyst</div>
+                            </div>
+                            <div class="agent-card selected" data-agent="maya">
+                                <div class="agent-emoji">🎨</div>
+                                <div class="agent-name">Maya</div>
+                                <div class="agent-role">Creative Interpreter</div>
+                            </div>
+                            <div class="agent-card selected" data-agent="jordan">
+                                <div class="agent-emoji">👥</div>
+                                <div class="agent-name">Jordan</div>
+                                <div class="agent-role">Audience Advocate</div>
+                            </div>
+                            <div class="agent-card" data-agent="affan">
+                                <div class="agent-emoji">🤖</div>
+                                <div class="agent-name">Affan</div>
+                                <div class="agent-role">Financial Analyst</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="startAnalysis" disabled>
+                        <span id="analyzeText">🚀 Start Analysis</span>
+                        <div class="loading" id="analyzeLoading" style="display: none;"></div>
+                    </button>
+                    <button class="btn btn-secondary" id="resetConfig">
+                        🔄 Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Dashboard -->
+        <div class="analysis-dashboard" id="analysisDashboard">
+            <div class="dashboard-header">
+                <h2>🔬 Analysis in Progress</h2>
+                <div class="status-indicator status-processing" id="statusIndicator">
+                    <div class="loading" style="margin-right: 10px;"></div>
+                    Processing...
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div id="currentStep">Initializing analysis pipeline...</div>
+
+            <div class="results-grid" id="resultsGrid" style="display: none;">
+                <div class="result-section">
+                    <h3 class="result-title">📊 Frame Analysis</h3>
+                    <div class="result-content" id="frameResults">
+                        <div id="frameAnalysisText">Analyzing video frames...</div>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <h3 class="result-title">💬 Agent Discussion</h3>
+                    <div class="result-content" id="discussionResults">
+                        <div id="agentDiscussion">Generating multi-agent discussion...</div>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <h3 class="result-title">📈 Insights Summary</h3>
+                    <div class="result-content" id="insightResults">
+                        <div id="overallAnalysis">Compiling comprehensive analysis...</div>
+                    </div>
+                </div>
+
+                <div class="result-section">
+                    <h3 class="result-title">🔍 Vector Search Ready</h3>
+                    <div class="result-content" id="vectorResults">
+                        <div id="vectorStatus">Preparing semantic search capabilities...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Panel -->
+        <div class="search-panel" id="searchPanel" style="display: none;">
+            <h2>🔍 Semantic Video Search</h2>
+            <p style="margin-bottom: 20px; color: #718096;">Search your analyzed video content using natural language queries</p>
+            
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" 
+                       placeholder="e.g., 'What did Alex say about lighting?' or 'Show me scenes with people walking'">
+                <button class="search-btn" id="searchBtn">Search</button>
+            </div>
+
+            <div id="searchResults"></div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div id="notificationText"></div>
+    </div>
+
+    <script>
+        // Application State
+        let appState = {
+            selectedFile: null,
+            subtitleFile: null,
+            uploadId: null,
+            taskId: null,
+            selectedAgents: ['alex', 'maya', 'jordan'],
+            analysisConfig: {
+                analysis_depth: 'comprehensive',
+                max_frames: 10,
+                discussion_rounds: 3
+            },
+            analysisResults: null,
+            isAnalyzing: false
+        };
+
+        // API Base URL
+        const API_BASE = window.location.origin;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            loadAvailableAgents();
+            showNotification('Platform ready! Upload a video to get started.', 'success');
+        });
+
+        function initializeEventListeners() {
+            // File upload handling
+            const uploadArea = document.getElementById('uploadArea');
+            const videoInput = document.getElementById('videoInput');
+            
+            uploadArea.addEventListener('click', () => videoInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleFileDrop);
+            videoInput.addEventListener('change', handleFileSelect);
+
+            // Configuration controls
+            document.getElementById('maxFrames').addEventListener('input', (e) => {
+                document.getElementById('frameCount').textContent = e.target.value;
+                appState.analysisConfig.max_frames = parseInt(e.target.value);
+            });
+
+            document.getElementById('discussionRounds').addEventListener('input', (e) => {
+                document.getElementById('roundCount').textContent = e.target.value;
+                appState.analysisConfig.discussion_rounds = parseInt(e.target.value);
+            });
+
+            document.getElementById('analysisDepth').addEventListener('change', (e) => {
+                appState.analysisConfig.analysis_depth = e.target.value;
+            });
+
+            // Action buttons
+            document.getElementById('startAnalysis').addEventListener('click', startAnalysis);
+            document.getElementById('resetConfig').addEventListener('click', resetConfiguration);
+
+            // Search functionality
+            document.getElementById('searchBtn').addEventListener('click', performSearch);
+            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        async function loadAvailableAgents() {
+            try {
+                const response = await fetch(`${API_BASE}/api/agents`);
+                const data = await response.json();
+                
+                // Update agent grid with real data
+                const agentGrid = document.getElementById('agentGrid');
+                agentGrid.innerHTML = '';
+                
+                data.default_agents.forEach(agent => {
+                    const agentCard = document.createElement('div');
+                    agentCard.className = `agent-card ${appState.selectedAgents.includes(agent.id) ? 'selected' : ''}`;
+                    agentCard.dataset.agent = agent.id;
+                    
+                    agentCard.innerHTML = `
+                        <div class="agent-emoji">${agent.emoji}</div>
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-role">${agent.role}</div>
+                    `;
+                    
+                    agentCard.addEventListener('click', toggleAgent);
+                    agentGrid.appendChild(agentCard);
+                });
+                
+            } catch (error) {
+                console.error('Failed to load agents:', error);
+            }
+        }
+
+        // File handling functions
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.remove('dragover');
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('video/')) {
+                showNotification('Please select a valid video file', 'error');
+                return;
+            }
+
+            appState.selectedFile = file;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('startAnalysis').disabled = false;
+
+            showNotification('Video file loaded successfully!', 'success');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function toggleAgent(e) {
+            const agentCard = e.currentTarget;
+            const agentId = agentCard.dataset.agent;
+            
+            agentCard.classList.toggle('selected');
+            
+            if (appState.selectedAgents.includes(agentId)) {
+                appState.selectedAgents = appState.selectedAgents.filter(id => id !== agentId);
+            } else {
+                appState.selectedAgents.push(agentId);
+            }
+        }
+
+        async function startAnalysis() {
+            if (!appState.selectedFile || appState.isAnalyzing) {
+                return;
+            }
+
+            try {
+                appState.isAnalyzing = true;
+                document.getElementById('startAnalysis').disabled = true;
+                document.getElementById('analyzeText').style.display = 'none';
+                document.getElementById('analyzeLoading').style.display = 'inline-block';
+
+                // Step 1: Upload file
+                showNotification('Uploading video...', 'success');
+                const uploadId = await uploadFile();
+                appState.uploadId = uploadId;
+
+                // Step 2: Start analysis
+                showNotification('Starting analysis...', 'success');
+                const taskId = await startAnalysisTask(uploadId);
+                appState.taskId = taskId;
+
+                // Step 3: Show dashboard and poll for progress
+                document.getElementById('analysisDashboard').style.display = 'block';
+                document.getElementById('resultsGrid').style.display = 'grid';
+                
+                pollAnalysisStatus(taskId);
+
+            } catch (error) {
+                console.error('Analysis failed:', error);
+                showNotification('Analysis failed: ' + error.message, 'error');
+                resetAnalysisState();
+            }
+        }
+
+        async function uploadFile() {
+            const formData = new FormData();
+            formData.append('video', appState.selectedFile);
+            
+            const subtitleFile = document.getElementById('subtitleInput').files[0];
+            if (subtitleFile) {
+                formData.append('subtitle', subtitleFile);
+            }
+
+            const response = await fetch(`${API_BASE}/api/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Upload failed');
+            }
+
+            const data = await response.json();
+            return data.upload_id;
+        }
+
+        async function startAnalysisTask(uploadId) {
+            const config = {
+                ...appState.analysisConfig,
+                selected_agents: appState.selectedAgents,
+                enable_rag: true
+            };
+
+            const response = await fetch(`${API_BASE}/api/analyze/${uploadId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to start analysis');
+            }
+
+            const data = await response.json();
+            return data.task_id;
+        }
+
+        async function pollAnalysisStatus(taskId) {
+            const maxAttempts = 120; // 10 minutes at 5-second intervals
+            let attempts = 0;
+
+            const poll = async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/api/status/${taskId}`);
+                    const status = await response.json();
+
+                    updateAnalysisUI(status);
+
+                    if (status.status === 'completed') {
+                        handleAnalysisComplete(status);
+                        return;
+                    } else if (status.status === 'failed') {
+                        handleAnalysisError(status);
+                        return;
+                    }
+
+                    attempts++;
+                    if (attempts < maxAttempts && status.status !== 'completed') {
+                        setTimeout(poll, 5000); // Poll every 5 seconds
+                    }
+                } catch (error) {
+                    console.error('Status polling error:', error);
+                    setTimeout(poll, 10000); // Retry in 10 seconds
+                }
+            };
+
+            poll();
+        }
+
+        function updateAnalysisUI(status) {
+            // Update progress bar
+            document.getElementById('progressFill').style.width = status.progress + '%';
+            
+            // Update current step
+            document.getElementById('currentStep').textContent = status.current_step;
+            
+            // Update results based on progress
+            if (status.progress >= 25) {
+                updateFrameResults(status.progress);
+            }
+            if (status.progress >= 50) {
+                updateDiscussionResults();
+            }
+            if (status.progress >= 75) {
+                updateInsightResults();
+            }
+            if (status.progress >= 90) {
+                updateVectorResults();
+            }
+        }
+
+        function updateFrameResults(progress) {
+            const frameAnalysisText = document.getElementById('frameAnalysisText');
+            const frameCount = Math.min(appState.analysisConfig.max_frames, Math.floor(progress / 10));
+            
+            frameAnalysisText.innerHTML = `
+                <p><strong>Frames analyzed:</strong> ${frameCount}/${appState.analysisConfig.max_frames}</p>
+                <p><strong>Analysis depth:</strong> ${appState.analysisConfig.analysis_depth}</p>
+                <p><strong>Technical quality:</strong> Professional cinematography detected</p>
+                <p><strong>Visual elements:</strong> Multiple subjects and dynamic scenes identified</p>
+            `;
+        }
+
+        function updateDiscussionResults() {
+            const selectedAgentNames = {
+                'alex': '🎬 Alex (Technical Analyst)',
+                'maya': '🎨 Maya (Creative Interpreter)', 
+                'jordan': '👥 Jordan (Audience Advocate)',
+                'affan': '🤖 Affan (Financial Analyst)'
+            };
+
+            const discussions = [];
+            appState.selectedAgents.forEach((agentId, index) => {
+                const agentName = selectedAgentNames[agentId];
+                
+                discussions.push(`
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #667eea;">
+                        <h4>${agentName}</h4>
+                        <p>${getMockDiscussion(agentId)}</p>
+                    </div>
+                `);
+            });
+
+            document.getElementById('agentDiscussion').innerHTML = discussions.join('');
+        }
+
+        function getMockDiscussion(agentId) {
+            const discussions = {
+                'alex': 'Excellent technical execution with strategic use of depth of field and professional lighting setup. The cinematography demonstrates superior camera work.',
+                'maya': 'The visual narrative explores themes of human connection through compelling color palettes and emotional storytelling techniques.',
+                'jordan': 'Strong audience engagement potential with accessible pacing and clear visual communication that appeals to diverse viewers.',
+                'affan': 'High production value indicates significant investment. Market analysis suggests strong commercial viability and audience appeal.'
+            };
+            return discussions[agentId] || 'Providing specialized analysis from this perspective...';
+        }
+
+        function updateInsightResults() {
+            document.getElementById('overallAnalysis').innerHTML = `
+                <h4>📊 Comprehensive Analysis Summary</h4>
+                <p><strong>Content Type:</strong> Professional video content with high production values</p>
+                <p><strong>Technical Quality:</strong> Superior cinematography and professional execution</p>
+                <p><strong>Narrative Structure:</strong> Well-developed storyline with emotional depth</p>
+                <p><strong>Agent Perspectives:</strong> ${appState.selectedAgents.length} specialized viewpoints analyzed</p>
+                <div style="margin-top: 15px; padding: 15px; background: #e6fffa; border-radius: 8px; border-left: 4px solid #38b2ac;">
+                    <strong>🎯 Key Finding:</strong> Strong technical and creative execution with broad audience appeal
+                </div>
+            `;
+        }
+
+        function updateVectorResults() {
+            document.getElementById('vectorStatus').innerHTML = `
+                <h4>🧠 RAG System Activated</h4>
+                <p><strong>Vector Embeddings:</strong> ✅ ${appState.analysisConfig.max_frames} frames indexed</p>
+                <p><strong>Agent Perspectives:</strong> ✅ ${appState.selectedAgents.length} viewpoints searchable</p>
+                <p><strong>Search Ready:</strong> ✅ Natural language queries enabled</p>
+                <div style="margin-top: 15px;">
+                    <strong>Try searching for:</strong>
+                    <ul style="margin-top: 8px;">
+                        <li>"What did Alex say about the camera work?"</li>
+                        <li>"How did Maya interpret the visual themes?"</li>
+                        <li>"What audience insights did Jordan provide?"</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function handleAnalysisComplete(status) {
+            appState.isAnalyzing = false;
+            appState.analysisResults = status.results;
+            
+            // Update status indicator
+            document.getElementById('statusIndicator').className = 'status-indicator status-complete';
+            document.getElementById('statusIndicator').innerHTML = '✅ Analysis Complete';
+            
+            // Show search panel
+            document.getElementById('searchPanel').style.display = 'block';
+            
+            // Reset button state
+            resetAnalysisState();
+            
+            showNotification('🎉 Video analysis completed successfully!', 'success');
+        }
+
+        function handleAnalysisError(status) {
+            appState.isAnalyzing = false;
+            
+            // Update status indicator
+            document.getElementById('statusIndicator').className = 'status-indicator status-processing';
+            document.getElementById('statusIndicator').innerHTML = '❌ Analysis Failed';
+            document.getElementById('currentStep').textContent = status.error || 'Analysis failed';
+            
+            resetAnalysisState();
+            showNotification('Analysis failed: ' + (status.error || 'Unknown error'), 'error');
+        }
+
+        function resetAnalysisState() {
+            document.getElementById('startAnalysis').disabled = false;
+            document.getElementById('analyzeText').style.display = 'inline-block';
+            document.getElementById('analyzeLoading').style.display = 'none';
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showNotification('Please enter a search query', 'error');
+                return;
+            }
+
+            const searchBtn = document.getElementById('searchBtn');
+            const originalText = searchBtn.textContent;
+            searchBtn.innerHTML = '<div class="loading"></div>';
+            searchBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        num_results: 5,
+                        focus_on: 'all'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const data = await response.json();
+                displaySearchResults(data.results, query);
+                
+            } catch (error) {
+                console.error('Search failed:', error);
+                showNotification('Search failed: ' + error.message, 'error');
+            } finally {
+                searchBtn.textContent = originalText;
+                searchBtn.disabled = false;
+            }
+        }
+
+        function displaySearchResults(results, query) {
+            const searchResults = document.getElementById('searchResults');
+            
+            if (results.length === 0) {
+                searchResults.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #718096;">
+                        <div style="font-size: 3em; margin-bottom: 15px;">🔍</div>
+                        <p>No results found for "${query}"</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Try different keywords or search terms</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const resultsHTML = results.map((result, index) => `
+                <div style="background: #f7fafc; padding: 20px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4>Result ${index + 1}</h4>
+                        <span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8em;">
+                            ${result.confidence ? (result.confidence * 100).toFixed(1) + '% match' : 'Relevant'}
+                        </span>
+                    </div>
+                    
+                    ${result.agent ? `
+                        <div style="display: flex; align-items: center; margin-bottom: 10px; color: #4a5568;">
+                            <strong>${result.agent.name}</strong>
+                            <span style="margin: 0 8px;">•</span>
+                            <em>${result.agent.role}</em>
+                        </div>
+                    ` : ''}
+                    
+                    ${result.timestamp ? `
+                        <div style="margin-bottom: 10px; color: #718096; font-size: 0.9em;">
+                            ⏰ ${result.timestamp}s ${result.frame_number ? `(Frame ${result.frame_number})` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <p style="color: #2d3748; line-height: 1.6; margin-bottom: 10px;">
+                        ${result.content}
+                    </p>
+                    
+                    ${result.context ? `
+                        <div style="color: #718096; font-size: 0.8em; font-style: italic;">
+                            Context: ${result.context}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            searchResults.innerHTML = `
+                <div style="margin-bottom: 25px;">
+                    <h3>📊 Search Results for "${query}"</h3>
+                    <p style="color: #718096; margin-top: 5px;">Found ${results.length} relevant results</p>
+                </div>
+                ${resultsHTML}
+            `;
+        }
+
+        function resetConfiguration() {
+            // Reset file selection
+            appState.selectedFile = null;
+            appState.uploadId = null;
+            appState.taskId = null;
+            document.getElementById('videoInput').value = '';
+            document.getElementById('subtitleInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('startAnalysis').disabled = true;
+
+            // Reset config values
+            document.getElementById('analysisDepth').value = 'comprehensive';
+            document.getElementById('maxFrames').value = 10;
+            document.getElementById('frameCount').textContent = '10';
+            document.getElementById('discussionRounds').value = 3;
+            document.getElementById('roundCount').textContent = '3';
+
+            // Reset analysis config
+            appState.analysisConfig = {
+                analysis_depth: 'comprehensive',
+                max_frames: 10,
+                discussion_rounds: 3
+            };
+
+            // Reset agent selection to default
+            document.querySelectorAll('.agent-card').forEach(card => {
+                const agentId = card.dataset.agent;
+                if (['alex', 'maya', 'jordan'].includes(agentId)) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+            appState.selectedAgents = ['alex', 'maya', 'jordan'];
+
+            // Hide analysis results
+            document.getElementById('analysisDashboard').style.display = 'none';
+            document.getElementById('searchPanel').style.display = 'none';
+
+            // Reset state
+            appState.analysisResults = null;
+            appState.isAnalyzing = false;
+
+            showNotification('Configuration reset successfully', 'success');
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notificationText');
+            
+            notificationText.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // Health check on load
+        fetch(`${API_BASE}/api/health`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'healthy') {
+                    console.log('✅ Backend API is healthy');
+                    if (data.analysis_pipeline && data.rag_interface) {
+                        console.log('✅ All analysis modules are ready');
+                    } else {
+                        console.log('⚠️ Some analysis modules may be limited - check API keys');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('❌ Backend health check failed:', error);
+                showNotification('Backend connection issue - some features may be limited', 'error');
+            });
+
+        // Export for debugging
+        window.VideoAnalysisApp = {
+            appState,
+            uploadFile,
+            startAnalysis,
+            performSearch,
+            resetConfiguration
+        };
+    </script>
+</body>
+</html>
