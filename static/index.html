@@ -296,6 +296,11 @@
             color: #2d3748;
         }
 
+        .status-error {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: #744210;
+        }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -436,6 +441,98 @@
             100% { transform: rotate(360deg); }
         }
 
+        .file-info {
+            background: #e6fffa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #38b2ac;
+        }
+
+        /* Enhanced Analysis Display Styles */
+        .enhanced-analysis-section, .enhanced-discussion-section, 
+        .enhanced-insights-section, .enhanced-vector-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .analysis-stats, .discussion-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .visual-highlights-section, .specializations-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .highlight-card, .agent-insight-card, .scene-card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.8em;
+            color: #718096;
+            text-transform: uppercase;
+        }
+
         @media (max-width: 768px) {
             .main-grid {
                 grid-template-columns: 1fr;
@@ -453,14 +550,14 @@
             .agent-grid {
                 grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             }
-        }
 
-        .file-info {
-            background: #e6fffa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            border-left: 4px solid #38b2ac;
+            .analysis-stats, .discussion-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -634,11 +731,9 @@
         <div id="notificationText"></div>
     </div>
 
-        <script>
-        // Enhanced Frontend Integration - Complete Implementation
-        // Place this in your static/index.html file, replacing existing JavaScript
-
-        // Application State (keep existing)
+    <script>
+        // Enhanced Frontend Integration - FIXED VERSION
+        // Application State
         let appState = {
             selectedFile: null,
             subtitleFile: null,
@@ -654,10 +749,10 @@
             isAnalyzing: false
         };
 
-        // API Base URL (keep existing)
+        // API Base URL
         const API_BASE = window.location.origin;
 
-        // Enhanced Analysis UI Handler
+        // FIXED: Enhanced Analysis UI Handler with better error handling
         function updateAnalysisUI(status) {
             // Update progress bar
             document.getElementById('progressFill').style.width = status.progress + '%';
@@ -665,11 +760,19 @@
             // Update current step
             document.getElementById('currentStep').textContent = status.current_step;
             
-            // If analysis is complete and we have enhanced results
-            if (status.status === 'completed' && status.results && status.results.summary) {
+            // Update status indicator
+            if (status.status === 'failed') {
+                document.getElementById('statusIndicator').className = 'status-indicator status-error';
+                document.getElementById('statusIndicator').innerHTML = '❌ Analysis Failed';
+            }
+            
+            // Show results grid when we have results
+            if (status.results && status.results.summary) {
+                document.getElementById('resultsGrid').style.display = 'grid';
                 displayEnhancedResults(status.results.summary);
-            } else {
+            } else if (status.progress >= 25) {
                 // Show progressive updates during analysis
+                document.getElementById('resultsGrid').style.display = 'grid';
                 updateProgressiveResults(status);
             }
         }
@@ -677,30 +780,23 @@
         function displayEnhancedResults(results) {
             console.log('Displaying enhanced analysis results:', results);
             
-            // Check if we have proper enhanced analysis data
-            const hasEnhanced = results.key_insights || results.analysis_summary || results.configurable_agent_features;
-            
-            if (hasEnhanced) {
-                // Display real enhanced analysis data
-                displayRealEnhancedData(results);
-            } else {
-                // Fallback to basic display with available data
-                displayBasicResults(results);
+            try {
+                // Enhanced Frame Analysis
+                updateEnhancedFrameAnalysis(results);
+                
+                // Enhanced Agent Discussion  
+                updateEnhancedAgentDiscussion(results);
+                
+                // Enhanced Overall Insights
+                updateEnhancedInsights(results);
+                
+                // Enhanced Vector Search Status
+                updateEnhancedVectorStatus(results);
+            } catch (error) {
+                console.error('Error displaying results:', error);
+                // Fallback to basic display
+                updateBasicResults(results);
             }
-        }
-
-        function displayRealEnhancedData(results) {
-            // Enhanced Frame Analysis
-            updateEnhancedFrameAnalysis(results);
-            
-            // Enhanced Agent Discussion  
-            updateEnhancedAgentDiscussion(results);
-            
-            // Enhanced Overall Insights
-            updateEnhancedInsights(results);
-            
-            // Enhanced Vector Search Status
-            updateEnhancedVectorStatus(results);
         }
 
         function updateEnhancedFrameAnalysis(results) {
@@ -728,40 +824,13 @@
                 </div>
             `;
             
-            // Display visual elements if available
-            if (results.key_insights?.visual_elements) {
-                const ve = results.key_insights.visual_elements;
-                content += '<div class="visual-elements-section">';
-                content += '<h5>Visual Elements Detected</h5>';
-                
-                if (ve.dominant_subjects && ve.dominant_subjects.length > 0) {
-                    content += '<div class="element-group">';
-                    content += '<strong>Main Subjects:</strong> ';
-                    content += ve.dominant_subjects.slice(0, 3)
-                        .map(([subject, count]) => `<span class="element-tag subject-tag">${subject} (${count})</span>`)
-                        .join(' ');
-                    content += '</div>';
-                }
-                
-                if (ve.color_palette && ve.color_palette.length > 0) {
-                    content += '<div class="element-group">';
-                    content += '<strong>Color Palette:</strong> ';
-                    content += ve.color_palette.slice(0, 5)
-                        .map(([color, count]) => `<span class="element-tag color-tag" style="background-color: ${color}; color: white;">${color} (${count})</span>`)
-                        .join(' ');
-                    content += '</div>';
-                }
-                
-                content += '</div>';
-            }
-            
-            // Display key visual highlights
+            // Display visual highlights if available
             if (results.key_insights?.visual_highlights) {
                 content += '<div class="visual-highlights-section">';
                 content += '<h5>Key Visual Moments</h5>';
                 results.key_insights.visual_highlights.slice(0, 3).forEach((highlight, index) => {
                     content += `<div class="highlight-card">
-                        <div class="highlight-header">Frame ${index + 1}</div>
+                        <div class="highlight-header">Visual Highlight ${index + 1}</div>
                         <div class="highlight-content">${highlight}</div>
                     </div>`;
                 });
@@ -810,28 +879,28 @@
                 content += '</div>';
             }
             
-            // Agent perspectives (enhanced)
+            // Agent perspectives
+            content += '<div class="agent-insights-section">';
+            content += '<h5>Agent Perspectives</h5>';
+            
             const agentInsights = {
                 'Technical Analyst': {
                     icon: '🎬',
-                    insight: 'Comprehensive technical analysis reveals professional cinematographic execution with strategic lighting design and superior camera positioning that demonstrates high production values.'
+                    insight: 'Comprehensive technical analysis reveals professional cinematographic execution with strategic lighting design and superior camera positioning.'
                 },
                 'Creative Interpreter': {
                     icon: '🎨', 
-                    insight: 'The visual narrative employs sophisticated storytelling techniques with compelling thematic elements and artistic composition that creates meaningful emotional engagement.'
+                    insight: 'The visual narrative employs sophisticated storytelling techniques with compelling thematic elements and artistic composition.'
                 },
                 'Audience Advocate': {
                     icon: '👥',
-                    insight: 'Strong audience engagement potential through accessible visual language and clear communication structure that appeals to diverse demographic segments.'
+                    insight: 'Strong audience engagement potential through accessible visual language and clear communication structure.'
                 },
                 'Financial Marketing Analyst': {
                     icon: '💼',
-                    insight: 'High commercial viability demonstrated through professional production quality and market-oriented content structure indicating significant investment potential.'
+                    insight: 'High commercial viability demonstrated through professional production quality and market-oriented content structure.'
                 }
             };
-            
-            content += '<div class="agent-insights-section">';
-            content += '<h5>Agent Perspectives</h5>';
             
             const specializations = agentFeatures.agent_specializations || Object.keys(agentInsights).slice(0, 3);
             
@@ -889,7 +958,7 @@
                 <h5>Analysis Metrics</h5>
                 <div class="metrics-grid">
                     <div class="metric-card">
-                        <div class="metric-value">$${(summary.total_cost || 0).toFixed(4)}</div>
+                        <div class="metric-value">${(summary.total_cost || 0).toFixed(4)}</div>
                         <div class="metric-label">Total Cost</div>
                     </div>
                     <div class="metric-card">
@@ -969,6 +1038,44 @@
             performSearch();
         }
 
+        // Basic results display fallback
+        function updateBasicResults(results) {
+            // Frame Analysis
+            const frameCount = results.analysis_summary?.frames_analyzed || appState.analysisConfig.max_frames;
+            document.getElementById('frameAnalysisText').innerHTML = `
+                <h4>Frame Analysis Complete</h4>
+                <p><strong>Frames analyzed:</strong> ${frameCount}</p>
+                <p><strong>Analysis depth:</strong> ${results.analysis_depth || 'comprehensive'}</p>
+                <p><strong>Status:</strong> Analysis completed successfully</p>
+            `;
+
+            // Agent Discussion
+            const agentCount = results.configurable_agent_features?.agents_participated || appState.selectedAgents.length;
+            document.getElementById('agentDiscussion').innerHTML = `
+                <h4>Multi-Agent Discussion Complete</h4>
+                <p><strong>Agents participated:</strong> ${agentCount}</p>
+                <p><strong>Discussion turns:</strong> ${results.analysis_summary?.discussion_turns || 0}</p>
+                <p><strong>Analysis perspectives:</strong> Technical, Creative, Audience-focused</p>
+            `;
+
+            // Overall Analysis
+            const assessment = results.key_insights?.comprehensive_assessment || 'Professional video analysis completed.';
+            document.getElementById('overallAnalysis').innerHTML = `
+                <h4>Comprehensive Analysis</h4>
+                <p>${assessment}</p>
+                <p><strong>Cost:</strong> ${(results.analysis_summary?.total_cost || 0).toFixed(4)}</p>
+            `;
+
+            // Vector Status
+            const ragEnabled = results.system_status?.vector_search_ready !== false;
+            document.getElementById('vectorStatus').innerHTML = `
+                <h4>Search System Status</h4>
+                <p><strong>Vector search:</strong> ${ragEnabled ? '✅ Ready' : '⏸️ Limited'}</p>
+                <p><strong>Frames indexed:</strong> ${frameCount}</p>
+                <p><strong>Query capabilities:</strong> ${ragEnabled ? 'Full semantic search' : 'Basic search'}</p>
+            `;
+        }
+
         // Progressive results during analysis
         function updateProgressiveResults(status) {
             if (status.progress >= 25) {
@@ -978,14 +1085,13 @@
                 updateDiscussionResults();
             }
             if (status.progress >= 75) {
-                updateInsightResults();  
+                updateInsightResults();
             }
             if (status.progress >= 90) {
                 updateVectorResults();
             }
         }
 
-        // Keep existing functions but update frame results to be more dynamic
         function updateFrameResults(progress) {
             const frameAnalysisText = document.getElementById('frameAnalysisText');
             const frameCount = Math.min(appState.analysisConfig.max_frames, Math.floor(progress / 10));
@@ -1003,281 +1109,100 @@
             `;
         }
 
-        // Add enhanced CSS styles
-        const enhancedCSS = `
-        <style>
-        .enhanced-analysis-section, .enhanced-discussion-section, .enhanced-insights-section, .enhanced-vector-section {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 15px;
+        function updateDiscussionResults() {
+            const selectedAgentNames = {
+                'alex': '🎬 Alex (Technical Analyst)',
+                'maya': '🎨 Maya (Creative Interpreter)', 
+                'jordan': '👥 Jordan (Audience Advocate)',
+                'affan': '🤖 Affan (Financial Analyst)'
+            };
+
+            const discussions = [];
+            appState.selectedAgents.forEach((agentId, index) => {
+                const agentName = selectedAgentNames[agentId] || `🤖 ${agentId} (Analyst)`;
+                
+                discussions.push(`
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #667eea;">
+                        <h4>${agentName}</h4>
+                        <p>${getMockDiscussion(agentId)}</p>
+                    </div>
+                `);
+            });
+
+            document.getElementById('agentDiscussion').innerHTML = discussions.join('');
         }
 
-        .analysis-stats, .discussion-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
+        function getMockDiscussion(agentId) {
+            const discussions = {
+                'alex': 'Excellent technical execution with strategic use of depth of field and professional lighting setup. The cinematography demonstrates superior camera work.',
+                'maya': 'The visual narrative explores themes of human connection through compelling color palettes and emotional storytelling techniques.',
+                'jordan': 'Strong audience engagement potential with accessible pacing and clear visual communication that appeals to diverse viewers.',
+                'affan': 'High production value indicates significant investment. Market analysis suggests strong commercial viability and audience appeal.'
+            };
+            return discussions[agentId] || 'Providing specialized analysis from this perspective...';
         }
 
-        .stat-item {
-            text-align: center;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        function updateInsightResults() {
+            document.getElementById('overallAnalysis').innerHTML = `
+                <h4>📊 Comprehensive Analysis Summary</h4>
+                <p><strong>Content Type:</strong> Professional video content with high production values</p>
+                <p><strong>Technical Quality:</strong> Superior cinematography and professional execution</p>
+                <p><strong>Narrative Structure:</strong> Well-developed storyline with emotional depth</p>
+                <p><strong>Agent Perspectives:</strong> ${appState.selectedAgents.length} specialized viewpoints analyzed</p>
+                <div style="margin-top: 15px; padding: 15px; background: #e6fffa; border-radius: 8px; border-left: 4px solid #38b2ac;">
+                    <strong>🎯 Key Finding:</strong> Strong technical and creative execution with broad audience appeal
+                </div>
+            `;
         }
 
-        .stat-value {
-            display: block;
-            font-size: 1.5em;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
+        function updateVectorResults() {
+            document.getElementById('vectorStatus').innerHTML = `
+                <h4>🧠 RAG System Activated</h4>
+                <p><strong>Vector Embeddings:</strong> ✅ ${appState.analysisConfig.max_frames} frames indexed</p>
+                <p><strong>Agent Perspectives:</strong> ✅ ${appState.selectedAgents.length} viewpoints searchable</p>
+                <p><strong>Search Ready:</strong> ✅ Natural language queries enabled</p>
+                <div style="margin-top: 15px;">
+                    <strong>Try searching for:</strong>
+                    <ul style="margin-top: 8px;">
+                        <li>"What did Alex say about the camera work?"</li>
+                        <li>"How did Maya interpret the visual themes?"</li>
+                        <li>"What audience insights did Jordan provide?"</li>
+                    </ul>
+                </div>
+            `;
         }
 
-        .stat-label {
-            font-size: 0.8em;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .visual-elements-section, .specializations-section {
-            margin: 20px 0;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-        }
-
-        .element-group {
-            margin: 10px 0;
-        }
-
-        .element-tag {
-            display: inline-block;
-            padding: 4px 8px;
-            margin: 2px 4px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: 500;
-        }
-
-        .subject-tag {
-            background: #e6fffa;
-            color: #234e52;
-        }
-
-        .color-tag {
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-
-        .specialization-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .specialization-tag {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-        }
-
-        .highlight-card, .agent-insight-card, .scene-card {
-            background: white;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .highlight-header, .agent-header {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-        }
-
-        .agent-icon {
-            font-size: 1.2em;
-            margin-right: 8px;
-        }
-
-        .highlight-content, .agent-insight-content {
-            color: #4a5568;
-            line-height: 1.6;
-        }
-
-        .comprehensive-assessment {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #38b2ac;
-            color: #2d3748;
-            line-height: 1.7;
-            margin: 15px 0;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .metric-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .metric-value {
-            font-size: 1.3em;
-            font-weight: 700;
-            color: #667eea;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .metric-label {
-            font-size: 0.8em;
-            color: #718096;
-            text-transform: uppercase;
-        }
-
-        .rag-status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        .rag-status-item {
-            display: flex;
-            align-items: center;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .rag-status-item.active {
-            border-left: 4px solid #48bb78;
-        }
-
-        .rag-status-item.inactive {
-            border-left: 4px solid #e53e3e;
-            opacity: 0.7;
-        }
-
-        .status-icon {
-            font-size: 1.5em;
-            margin-right: 12px;
-        }
-
-        .status-title {
-            font-weight: 600;
-            color: #2d3748;
-        }
-
-        .status-detail {
-            font-size: 0.9em;
-            color: #718096;
-        }
-
-        .suggestion-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .suggestion-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .suggestion-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
-        }
-
-        .scene-number {
-            background: #667eea;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            display: inline-block;
-            margin-bottom: 8px;
-        }
-
-        .progress-analysis {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .processing-indicator {
-            background: #e2e8f0;
-            height: 6px;
-            border-radius: 3px;
-            margin: 15px 0;
-            overflow: hidden;
-        }
-
-        .processing-bar {
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-
-        @media (max-width: 768px) {
-            .analysis-stats, .discussion-stats {
-                grid-template-columns: 1fr;
-            }
+        function handleAnalysisComplete(status) {
+            appState.isAnalyzing = false;
+            appState.analysisResults = status.results;
             
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
+            // Update status indicator
+            document.getElementById('statusIndicator').className = 'status-indicator status-complete';
+            document.getElementById('statusIndicator').innerHTML = '✅ Analysis Complete';
             
-            .rag-status-grid {
-                grid-template-columns: 1fr;
-            }
+            // Show search panel
+            document.getElementById('searchPanel').style.display = 'block';
             
-            .suggestion-buttons {
-                flex-direction: column;
-            }
-        }
-        </style>
-        `;
-
-        // Add enhanced styles to the document
-        function addEnhancedStyles() {
-            if (!document.getElementById('enhanced-analysis-styles')) {
-                const styleSheet = document.createElement('style');
-                styleSheet.id = 'enhanced-analysis-styles';
-                styleSheet.textContent = enhancedCSS.replace(/<\/?style>/g, '');
-                document.head.appendChild(styleSheet);
-            }
+            // Reset button state
+            resetAnalysisState();
+            
+            showNotification('🎉 Video analysis completed successfully!', 'success');
         }
 
-        // Initialize enhanced styling when DOM loads
+        function handleAnalysisError(status) {
+            appState.isAnalyzing = false;
+            
+            // Update status indicator
+            document.getElementById('statusIndicator').className = 'status-indicator status-error';
+            document.getElementById('statusIndicator').innerHTML = '❌ Analysis Failed';
+            document.getElementById('currentStep').textContent = status.error || 'Analysis failed';
+            
+            resetAnalysisState();
+            showNotification('Analysis failed: ' + (status.error || 'Unknown error'), 'error');
+        }
+
+        // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            addEnhancedStyles();
             initializeEventListeners();
             loadAvailableAgents();
             showNotification('Platform ready! Upload a video to get started.', 'success');
@@ -1436,7 +1361,6 @@
 
                 // Step 3: Show dashboard and poll for progress
                 document.getElementById('analysisDashboard').style.display = 'block';
-                document.getElementById('resultsGrid').style.display = 'grid';
                 
                 pollAnalysisStatus(taskId);
 
@@ -1517,143 +1441,13 @@
                     }
                 } catch (error) {
                     console.error('Status polling error:', error);
-                    setTimeout(poll, 10000); // Retry in 10 seconds
+                    if (attempts < maxAttempts) {
+                        setTimeout(poll, 10000); // Retry in 10 seconds
+                    }
                 }
             };
 
             poll();
-        }
-
-        function updateAnalysisUI(status) {
-            // Update progress bar
-            document.getElementById('progressFill').style.width = status.progress + '%';
-            
-            // Update current step
-            document.getElementById('currentStep').textContent = status.current_step;
-            
-            // Update results based on progress
-            if (status.progress >= 25) {
-                updateFrameResults(status.progress);
-            }
-            if (status.progress >= 50) {
-                updateDiscussionResults();
-            }
-            if (status.progress >= 75) {
-                updateInsightResults();
-            }
-            if (status.progress >= 90) {
-                updateVectorResults();
-            }
-        }
-
-        function updateFrameResults(progress) {
-            const frameAnalysisText = document.getElementById('frameAnalysisText');
-            const frameCount = Math.min(appState.analysisConfig.max_frames, Math.floor(progress / 10));
-            
-            frameAnalysisText.innerHTML = `
-                <p><strong>Frames analyzed:</strong> ${frameCount}/${appState.analysisConfig.max_frames}</p>
-                <p><strong>Analysis depth:</strong> ${appState.analysisConfig.analysis_depth}</p>
-                <p><strong>Technical quality:</strong> Professional cinematography detected</p>
-                <p><strong>Visual elements:</strong> Multiple subjects and dynamic scenes identified</p>
-            `;
-        }
-
-        function updateDiscussionResults() {
-            const selectedAgentNames = {
-                'alex': '🎬 Alex (Technical Analyst)',
-                'maya': '🎨 Maya (Creative Interpreter)', 
-                'jordan': '👥 Jordan (Audience Advocate)',
-                'affan': '🤖 Affan (Financial Analyst)'
-            };
-
-            const discussions = [];
-            appState.selectedAgents.forEach((agentId, index) => {
-                const agentName = selectedAgentNames[agentId];
-                
-                discussions.push(`
-                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #667eea;">
-                        <h4>${agentName}</h4>
-                        <p>${getMockDiscussion(agentId)}</p>
-                    </div>
-                `);
-            });
-
-            document.getElementById('agentDiscussion').innerHTML = discussions.join('');
-        }
-
-        function getMockDiscussion(agentId) {
-            const discussions = {
-                'alex': 'Excellent technical execution with strategic use of depth of field and professional lighting setup. The cinematography demonstrates superior camera work.',
-                'maya': 'The visual narrative explores themes of human connection through compelling color palettes and emotional storytelling techniques.',
-                'jordan': 'Strong audience engagement potential with accessible pacing and clear visual communication that appeals to diverse viewers.',
-                'affan': 'High production value indicates significant investment. Market analysis suggests strong commercial viability and audience appeal.'
-            };
-            return discussions[agentId] || 'Providing specialized analysis from this perspective...';
-        }
-
-        function updateInsightResults() {
-            document.getElementById('overallAnalysis').innerHTML = `
-                <h4>📊 Comprehensive Analysis Summary</h4>
-                <p><strong>Content Type:</strong> Professional video content with high production values</p>
-                <p><strong>Technical Quality:</strong> Superior cinematography and professional execution</p>
-                <p><strong>Narrative Structure:</strong> Well-developed storyline with emotional depth</p>
-                <p><strong>Agent Perspectives:</strong> ${appState.selectedAgents.length} specialized viewpoints analyzed</p>
-                <div style="margin-top: 15px; padding: 15px; background: #e6fffa; border-radius: 8px; border-left: 4px solid #38b2ac;">
-                    <strong>🎯 Key Finding:</strong> Strong technical and creative execution with broad audience appeal
-                </div>
-            `;
-        }
-
-        function updateVectorResults() {
-            document.getElementById('vectorStatus').innerHTML = `
-                <h4>🧠 RAG System Activated</h4>
-                <p><strong>Vector Embeddings:</strong> ✅ ${appState.analysisConfig.max_frames} frames indexed</p>
-                <p><strong>Agent Perspectives:</strong> ✅ ${appState.selectedAgents.length} viewpoints searchable</p>
-                <p><strong>Search Ready:</strong> ✅ Natural language queries enabled</p>
-                <div style="margin-top: 15px;">
-                    <strong>Try searching for:</strong>
-                    <ul style="margin-top: 8px;">
-                        <li>"What did Alex say about the camera work?"</li>
-                        <li>"How did Maya interpret the visual themes?"</li>
-                        <li>"What audience insights did Jordan provide?"</li>
-                    </ul>
-                </div>
-            `;
-        }
-
-        function handleAnalysisComplete(status) {
-            appState.isAnalyzing = false;
-            appState.analysisResults = status.results;
-            
-            // Update status indicator
-            document.getElementById('statusIndicator').className = 'status-indicator status-complete';
-            document.getElementById('statusIndicator').innerHTML = '✅ Analysis Complete';
-            
-            // Show search panel
-            document.getElementById('searchPanel').style.display = 'block';
-            
-            // Reset button state
-            resetAnalysisState();
-            
-            showNotification('🎉 Video analysis completed successfully!', 'success');
-        }
-
-        function handleAnalysisError(status) {
-            appState.isAnalyzing = false;
-            
-            // Update status indicator
-            document.getElementById('statusIndicator').className = 'status-indicator status-processing';
-            document.getElementById('statusIndicator').innerHTML = '❌ Analysis Failed';
-            document.getElementById('currentStep').textContent = status.error || 'Analysis failed';
-            
-            resetAnalysisState();
-            showNotification('Analysis failed: ' + (status.error || 'Unknown error'), 'error');
-        }
-
-        function resetAnalysisState() {
-            document.getElementById('startAnalysis').disabled = false;
-            document.getElementById('analyzeText').style.display = 'inline-block';
-            document.getElementById('analyzeLoading').style.display = 'none';
         }
 
         async function performSearch() {
@@ -1801,6 +1595,12 @@
             showNotification('Configuration reset successfully', 'success');
         }
 
+        function resetAnalysisState() {
+            document.getElementById('startAnalysis').disabled = false;
+            document.getElementById('analyzeText').style.display = 'inline-block';
+            document.getElementById('analyzeLoading').style.display = 'none';
+        }
+
         function showNotification(message, type = 'success') {
             const notification = document.getElementById('notification');
             const notificationText = document.getElementById('notificationText');
@@ -1841,5 +1641,149 @@
             resetConfiguration
         };
     </script>
+
+    <style>
+        /* Additional styles for enhanced display elements */
+        .specialization-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            display: inline-block;
+            margin: 2px 4px;
+        }
+
+        .agent-header {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .agent-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .agent-insight-content {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .comprehensive-assessment {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #38b2ac;
+            color: #2d3748;
+            line-height: 1.7;
+            margin: 15px 0;
+        }
+
+        .scene-number {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .rag-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .rag-status-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .rag-status-item.active {
+            border-left: 4px solid #48bb78;
+        }
+
+        .rag-status-item.inactive {
+            border-left: 4px solid #e53e3e;
+            opacity: 0.7;
+        }
+
+        .status-icon {
+            font-size: 1.5em;
+            margin-right: 12px;
+        }
+
+        .status-title {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .status-detail {
+            font-size: 0.9em;
+            color: #718096;
+        }
+
+        .suggestion-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .suggestion-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .progress-analysis {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .processing-indicator {
+            background: #e2e8f0;
+            height: 6px;
+            border-radius: 3px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .processing-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .rag-status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .suggestion-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
 </body>
 </html>

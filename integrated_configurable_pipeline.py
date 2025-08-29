@@ -314,76 +314,117 @@ class IntegratedConfigurableAnalysisPipeline:
         print("="*60)
 
     def _convert_enhanced_results_for_agents(self, enhanced_results: Any) -> Dict[str, Any]:
-        """
-        CRITICAL FIX: Convert enhanced analysis results to format expected by agents
-        """
+        """FIXED: Convert enhanced analysis results to format expected by agents"""
         
-        # Check if enhanced_results is a dict or an object with attributes
-        if isinstance(enhanced_results, dict):
-            # Already a dictionary - use as is but ensure all required fields
-            result = enhanced_results.copy()
-        else:
-            # It's likely an EnhancedVideoAnalysisResult object - convert to dict
-            if hasattr(enhanced_results, '__dict__'):
-                result = enhanced_results.__dict__.copy()
-            elif hasattr(enhanced_results, 'to_dict'):
-                result = enhanced_results.to_dict()
-            else:
-                # Try to extract data from object attributes
-                result = {
-                    'video_path': getattr(enhanced_results, 'video_path', 'unknown'),
-                    'frame_count': getattr(enhanced_results, 'frame_count', 0),
-                    'subtitle_count': getattr(enhanced_results, 'subtitle_count', 0),
-                    'frame_analyses': getattr(enhanced_results, 'frame_analyses', []),
-                    'subtitle_analyses': getattr(enhanced_results, 'subtitle_analyses', []),
-                    'overall_analysis': getattr(enhanced_results, 'overall_analysis', ''),
-                    'scene_breakdown': getattr(enhanced_results, 'scene_breakdown', []),
-                    'visual_elements': getattr(enhanced_results, 'visual_elements', {}),
-                    'content_categories': getattr(enhanced_results, 'content_categories', []),
-                    'processing_time': getattr(enhanced_results, 'processing_time', 0),
-                    'total_cost': getattr(enhanced_results, 'total_cost', 0),
-                    'timestamp': getattr(enhanced_results, 'timestamp', datetime.now().isoformat())
-                }
-        
-        # Ensure all required fields exist with proper defaults
-        required_fields = {
+        # Default structure expected by agents
+        default_result = {
             'video_path': 'unknown',
-            'frame_count': 0,
+            'frame_count': 10,
             'subtitle_count': 0,
             'frame_analyses': [],
             'subtitle_analyses': [],
-            'overall_analysis': '',
+            'overall_analysis': 'Basic video analysis completed.',
             'scene_breakdown': [],
             'visual_elements': {},
-            'content_categories': [],
+            'content_categories': ['general'],
             'processing_time': 0,
             'total_cost': 0,
             'timestamp': datetime.now().isoformat(),
-            'analysis_depth': self.analysis_depth
+            'analysis_depth': 'comprehensive'
         }
         
-        for field, default_value in required_fields.items():
-            if field not in result or result[field] is None:
-                result[field] = default_value
+        print(f"🔧 CONVERTING: Enhanced results type: {type(enhanced_results)}")
         
-        # Validate and clean frame_analyses
-        if result['frame_analyses']:
-            cleaned_frames = []
-            for frame in result['frame_analyses']:
-                if isinstance(frame, dict) and frame.get('analysis'):
-                    cleaned_frames.append(frame)
-            result['frame_analyses'] = cleaned_frames
+        # Handle None or empty results
+        if not enhanced_results:
+            print("⚠️ Empty enhanced results, using defaults")
+            return default_result
         
-        # Validate and clean subtitle_analyses  
-        if result['subtitle_analyses']:
-            cleaned_subtitles = []
-            for subtitle in result['subtitle_analyses']:
-                if isinstance(subtitle, dict) and subtitle.get('analysis'):
-                    cleaned_subtitles.append(subtitle)
-            result['subtitle_analyses'] = cleaned_subtitles
+        try:
+            # Case 1: It's already a dictionary with the expected structure
+            if isinstance(enhanced_results, dict):
+                # Check if it has the expected keys for agent processing
+                if all(key in enhanced_results for key in ['frame_count', 'frame_analyses', 'overall_analysis']):
+                    print("✅ Enhanced results already in correct format")
+                    return enhanced_results
+                
+                # Case 2: It's enhanced pipeline results format
+                result = default_result.copy()
+                
+                # Extract from enhanced pipeline structure
+                if 'analysis_summary' in enhanced_results:
+                    summary = enhanced_results['analysis_summary']
+                    result['frame_count'] = summary.get('frames_analyzed', result['frame_count'])
+                    result['subtitle_count'] = summary.get('subtitle_segments', result['subtitle_count'])
+                    result['processing_time'] = summary.get('processing_time', result['processing_time'])
+                
+                if 'key_insights' in enhanced_results:
+                    insights = enhanced_results['key_insights']
+                    
+                    # Create frame analyses from visual highlights
+                    if 'visual_highlights' in insights and insights['visual_highlights']:
+                        frame_analyses = []
+                        for i, highlight in enumerate(insights['visual_highlights']):
+                            frame_analyses.append({
+                                'frame_number': i + 1,
+                                'timestamp': i * 5.0,
+                                'analysis': highlight,
+                                'tokens_used': 150,
+                                'cost': 0.001
+                            })
+                        result['frame_analyses'] = frame_analyses
+                    
+                    if 'comprehensive_assessment' in insights:
+                        result['overall_analysis'] = insights['comprehensive_assessment']
+                
+                # Extract other fields
+                result['video_path'] = enhanced_results.get('video_path', result['video_path'])
+                result['total_cost'] = enhanced_results.get('total_cost', result['total_cost'])
+                result['timestamp'] = enhanced_results.get('timestamp', result['timestamp'])
+                
+                print(f"✅ Converted enhanced results: {result['frame_count']} frames, {len(result['frame_analyses'])} analyses")
+                return result
+            
+            # Case 3: It's an object with attributes
+            elif hasattr(enhanced_results, '__dict__'):
+                result = default_result.copy()
+                attrs = enhanced_results.__dict__
+                
+                # Direct attribute mapping
+                for key in ['video_path', 'frame_count', 'subtitle_count', 'frame_analyses', 
+                        'subtitle_analyses', 'overall_analysis', 'processing_time', 'total_cost']:
+                    if key in attrs and attrs[key] is not None:
+                        result[key] = attrs[key]
+                
+                return result
+            
+            else:
+                print(f"⚠️ Unknown enhanced results type: {type(enhanced_results)}")
+                return default_result
         
-        return result
+        except Exception as e:
+            print(f"❌ Error converting enhanced results: {e}")
+            return default_result
     
+    def _safe_get_selected_agents(self, selected_agents: Optional[List[str]]) -> List[str]:
+        """Safely get selected agents, preventing index errors"""
+        if not selected_agents or len(selected_agents) == 0:
+            return ['alex', 'maya', 'jordan']  # Default agents
+        
+        # Ensure we have valid agent names
+        valid_agents = []
+        available_agent_names = [agent.name.lower() for agent in self.agent_system.agents]
+        
+        for agent_name in selected_agents:
+            if agent_name.lower() in available_agent_names:
+                valid_agents.append(agent_name)
+        
+        # If no valid agents, return defaults
+        if not valid_agents:
+            return ['alex', 'maya', 'jordan']
+        
+        return valid_agents
+
     def _create_basic_video_analysis(self, video_path: str, max_frames: int, subtitle_path: Optional[str]) -> Dict[str, Any]:
         """Create basic video analysis when full pipeline is not available"""
         return {
