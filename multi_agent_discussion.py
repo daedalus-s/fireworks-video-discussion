@@ -14,7 +14,6 @@ import random
 
 from fireworks_client import FireworksClient
 from video_analysis_system import VideoAnalysisResult
-from simple_api_manager import SimpleAPIManager  # or OptimizedAPIManager for speed
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
