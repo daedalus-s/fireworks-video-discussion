@@ -969,7 +969,24 @@
 
         // NEW: Enhanced analysis result display functions
         function displayEnhancedResults(results) {
-            console.log('Displaying enhanced analysis results:', results);
+            console.log('📊 Frontend received results:', results);
+            console.log('📊 Comprehensive assessment:', results.key_insights?.comprehensive_assessment?.substring(0, 200));
+            
+            // Validate we have real data before displaying
+            const assessment = results.key_insights?.comprehensive_assessment || '';
+            const hasRealAnalysis = assessment.length > 500 && 
+                                !assessment.includes('fallback') && 
+                                !assessment.includes('placeholder');
+            
+            console.log(`📊 Analysis validation: length=${assessment.length}, isReal=${hasRealAnalysis}`);
+            
+            if (!hasRealAnalysis) {
+                console.warn('❌ Real analysis not ready yet, received placeholder data');
+                console.log('📊 Assessment preview:', assessment.substring(0, 100));
+                return;
+            }
+            
+            console.log('✅ Real analysis data confirmed, proceeding with render');
             
             try {
                 // Show all result sections

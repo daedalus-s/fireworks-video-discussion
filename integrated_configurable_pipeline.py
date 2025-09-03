@@ -364,7 +364,7 @@ class IntegratedConfigurableAnalysisPipeline:
         return report
     
     def _convert_enhanced_results_for_agents_FIXED(self, enhanced_results: Any) -> Dict[str, Any]:
-        """ULTIMATE FIXED: Convert enhanced analysis results to format expected by agents"""
+        """COMPLETELY FIXED: Convert enhanced analysis results to format expected by agents"""
         
         # Default structure expected by agents
         default_result = {
@@ -383,7 +383,7 @@ class IntegratedConfigurableAnalysisPipeline:
             'analysis_depth': self.analysis_depth
         }
         
-        logger.info(f"🔧 ULTIMATE FIX: Enhanced results type: {type(enhanced_results)}")
+        logger.info(f"🔧 FIXED: Enhanced results type: {type(enhanced_results)}")
         
         # Handle None or empty results
         if not enhanced_results:
@@ -393,122 +393,87 @@ class IntegratedConfigurableAnalysisPipeline:
         try:
             result = default_result.copy()
             
-            # Handle different result structures
-            if isinstance(enhanced_results, dict):
-                
-                # CASE 1: Enhanced pipeline results (from analyze_video_highly_descriptive)
-                if 'enhanced_features' in enhanced_results or 'key_insights' in enhanced_results:
-                    logger.info("📊 Found enhanced pipeline results structure")
-                    
-                    # Extract basic info
-                    result['video_path'] = enhanced_results.get('video_path', result['video_path'])
-                    result['total_cost'] = enhanced_results.get('total_cost', result['total_cost'])
-                    result['timestamp'] = enhanced_results.get('timestamp', result['timestamp'])
-                    
-                    # Extract from analysis_summary
-                    if 'analysis_summary' in enhanced_results:
-                        summary = enhanced_results['analysis_summary']
-                        result['frame_count'] = summary.get('frames_analyzed', result['frame_count'])
-                        result['subtitle_count'] = summary.get('subtitle_segments', result['subtitle_count'])
-                        result['processing_time'] = summary.get('processing_time', result['processing_time'])
-                        result['total_cost'] = summary.get('analysis_cost', result['total_cost'])
-                    
-                    # Extract from key_insights - THIS IS THE CRITICAL PART
-                    if 'key_insights' in enhanced_results:
-                        insights = enhanced_results['key_insights']
-                        
-                        # Extract visual highlights as frame analyses
-                        if 'visual_highlights' in insights and insights['visual_highlights']:
-                            frame_analyses = []
-                            for i, highlight in enumerate(insights['visual_highlights']):
-                                frame_analyses.append({
-                                    'frame_number': i + 1,
-                                    'timestamp': i * 5.0,
-                                    'analysis': highlight,
-                                    'tokens_used': 200,
-                                    'cost': 0.002,
-                                    'analysis_depth': 'comprehensive'
-                                })
-                            result['frame_analyses'] = frame_analyses
-                            logger.info(f"✅ Extracted {len(frame_analyses)} visual highlights as frame analyses")
-                        
-                        # Extract comprehensive assessment as overall analysis
-                        if 'comprehensive_assessment' in insights:
-                            result['overall_analysis'] = insights['comprehensive_assessment']
-                            logger.info(f"✅ Extracted comprehensive assessment ({len(result['overall_analysis'])} chars)")
-                        
-                        # Extract scene summaries as scene breakdown
-                        if 'scene_summaries' in insights and insights['scene_summaries']:
-                            scene_breakdown = []
-                            for i, scene_summary in enumerate(insights['scene_summaries']):
-                                scene_breakdown.append({
-                                    'scene_number': i + 1,
-                                    'start_time': i * 20.0,
-                                    'end_time': (i + 1) * 20.0,
-                                    'summary': scene_summary,
-                                    'duration': 20.0
-                                })
-                            result['scene_breakdown'] = scene_breakdown
-                            logger.info(f"✅ Extracted {len(scene_breakdown)} scene summaries")
-                        
-                        # Extract visual elements
-                        if 'visual_elements' in insights:
-                            result['visual_elements'] = insights['visual_elements']
-                            logger.info("✅ Extracted visual elements")
-                
-                # CASE 2: Direct enhanced analysis results (EnhancedVideoAnalysisResult)
-                elif any(key in enhanced_results for key in ['frame_analyses', 'scene_breakdown', 'overall_analysis']):
-                    logger.info("📊 Found direct enhanced analysis results")
-                    
-                    # Direct mapping
-                    for key in ['video_path', 'frame_count', 'subtitle_count', 'frame_analyses',
-                               'subtitle_analyses', 'overall_analysis', 'scene_breakdown',
-                               'visual_elements', 'content_categories', 'processing_time', 'total_cost']:
-                        if key in enhanced_results and enhanced_results[key] is not None:
-                            result[key] = enhanced_results[key]
-                    
-                    logger.info("✅ Extracted direct enhanced analysis data")
-                
-                # CASE 3: Standard configurable pipeline results
-                elif 'configurable_agent_features' in enhanced_results:
-                    logger.info("📊 Found configurable agent results structure")
-                    
-                    # Extract analysis summary data
-                    if 'analysis_summary' in enhanced_results:
-                        summary = enhanced_results['analysis_summary']
-                        result['frame_count'] = summary.get('frames_analyzed', result['frame_count'])
-                        result['subtitle_count'] = summary.get('subtitle_segments', result['subtitle_count'])
-                        result['processing_time'] = summary.get('processing_time', result['processing_time'])
-                        result['total_cost'] = summary.get('total_cost', result['total_cost'])
-                    
-                    # Use other fields if available
-                    for key in ['video_path', 'overall_analysis', 'content_categories']:
-                        if key in enhanced_results:
-                            result[key] = enhanced_results[key]
+            # CRITICAL FIX: The backend generates real analysis in enhanced_descriptive_analysis.py
+            # We need to extract it from the RIGHT location
             
-            # CASE 4: Object with attributes
+            if isinstance(enhanced_results, dict):
+                logger.info("📊 Processing dictionary enhanced results")
+                
+                # Method 1: Direct extraction from enhanced analysis system
+                if 'overall_analysis' in enhanced_results and len(str(enhanced_results['overall_analysis'])) > 500:
+                    logger.info("✅ Found real comprehensive analysis (Method 1)")
+                    result['overall_analysis'] = enhanced_results['overall_analysis']
+                    
+                # Method 2: Extract from analysis_summary -> key_insights
+                elif 'key_insights' in enhanced_results:
+                    insights = enhanced_results['key_insights']
+                    logger.info("✅ Found key_insights structure (Method 2)")
+                    
+                    if 'comprehensive_assessment' in insights:
+                        assessment = insights['comprehensive_assessment']
+                        if len(str(assessment)) > 500:
+                            result['overall_analysis'] = assessment
+                            logger.info(f"✅ Extracted real assessment: {len(assessment)} chars")
+                    
+                # Method 3: Look for the actual enhanced analysis result structure
+                elif 'enhanced_analysis' in enhanced_results:
+                    enhanced = enhanced_results['enhanced_analysis']
+                    if 'overall_analysis' in enhanced:
+                        result['overall_analysis'] = enhanced['overall_analysis']
+                        logger.info("✅ Found analysis in enhanced structure (Method 3)")
+                
+                # Extract other fields safely
+                for key in ['video_path', 'frame_count', 'subtitle_count', 'processing_time', 'total_cost']:
+                    if key in enhanced_results and enhanced_results[key] is not None:
+                        result[key] = enhanced_results[key]
+                
+                # Extract frame analyses
+                if 'frame_analyses' in enhanced_results and enhanced_results['frame_analyses']:
+                    result['frame_analyses'] = enhanced_results['frame_analyses']
+                    logger.info(f"✅ Extracted {len(result['frame_analyses'])} frame analyses")
+                
+                # Extract scene breakdown
+                if 'scene_breakdown' in enhanced_results and enhanced_results['scene_breakdown']:
+                    result['scene_breakdown'] = enhanced_results['scene_breakdown']
+                    logger.info(f"✅ Extracted {len(result['scene_breakdown'])} scenes")
+                
+                # Extract visual elements
+                if 'visual_elements' in enhanced_results:
+                    result['visual_elements'] = enhanced_results['visual_elements']
+                    logger.info("✅ Extracted visual elements")
+            
+            # Handle object with attributes
             elif hasattr(enhanced_results, '__dict__'):
-                logger.info("📊 Converting object attributes to dict")
+                logger.info("📊 Processing object enhanced results")
                 attrs = enhanced_results.__dict__
                 
+                # Extract all available attributes
                 for key in ['video_path', 'frame_count', 'subtitle_count', 'frame_analyses',
-                           'subtitle_analyses', 'overall_analysis', 'scene_breakdown',
-                           'visual_elements', 'content_categories', 'processing_time', 'total_cost']:
+                        'subtitle_analyses', 'overall_analysis', 'scene_breakdown',
+                        'visual_elements', 'content_categories', 'processing_time', 'total_cost']:
                     if key in attrs and attrs[key] is not None:
                         result[key] = attrs[key]
+                        if key == 'overall_analysis' and len(str(attrs[key])) > 500:
+                            logger.info(f"✅ Extracted real analysis from object: {len(str(attrs[key]))} chars")
             
-            # Log extraction summary
-            logger.info(f"🎯 ULTIMATE FIX EXTRACTION SUMMARY:")
-            logger.info(f"   Frame count: {result['frame_count']}")
+            # FINAL VALIDATION: Ensure we have meaningful content
+            if len(str(result['overall_analysis'])) < 500:
+                logger.warning("⚠️ Analysis seems too short, this might be placeholder content")
+                logger.info(f"Analysis preview: {str(result['overall_analysis'])[:200]}...")
+            
+            # Log final extraction summary
+            logger.info(f"🎯 FIXED EXTRACTION SUMMARY:")
+            logger.info(f"   Analysis length: {len(str(result['overall_analysis']))} chars")
             logger.info(f"   Frame analyses: {len(result['frame_analyses'])}")
             logger.info(f"   Scene breakdown: {len(result['scene_breakdown'])}")
-            logger.info(f"   Overall analysis: {len(result['overall_analysis'])} chars")
-            logger.info(f"   Content categories: {result['content_categories']}")
+            logger.info(f"   Visual elements: {bool(result['visual_elements'])}")
             
             return result
             
         except Exception as e:
-            logger.error(f"❌ Error in ultimate fix conversion: {e}")
+            logger.error(f"❌ Error in fixed conversion: {e}")
+            import traceback
+            traceback.print_exc()
             return default_result
     
     def _create_basic_video_analysis(self, video_path: str, max_frames: int, subtitle_path: Optional[str]) -> Dict[str, Any]:

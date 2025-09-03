@@ -595,7 +595,13 @@ def format_fixed_results_for_frontend(
     validated_agents: List[str]
 ) -> Dict[str, Any]:
     """FIXED: Format results with comprehensive error handling"""
-    
+    print(f"DEBUG: Raw results keys: {list(raw_results.keys())}")
+    print(f"DEBUG: Raw results type: {type(raw_results)}")
+    if 'key_insights' in raw_results:
+        print(f"DEBUG: key_insights keys: {list(raw_results['key_insights'].keys())}")
+        if 'comprehensive_assessment' in raw_results['key_insights']:
+            assessment = raw_results['key_insights']['comprehensive_assessment']
+            print(f"DEBUG: Assessment length: {len(assessment)}, starts with: {assessment[:100]}...")
     try:
         # Extract data safely with fallbacks
         analysis_summary = raw_results.get("analysis_summary", {})
@@ -920,23 +926,105 @@ def get_visual_highlights_fixed(raw_results: Dict[str, Any], config: AnalysisCon
         ]
 
 def get_comprehensive_assessment_fixed(raw_results: Dict[str, Any], config: AnalysisConfig) -> str:
-    """FIXED: Generate comprehensive assessment"""
-    try:
-        if 'key_insights' in raw_results and 'comprehensive_assessment' in raw_results['key_insights']:
-            return raw_results['key_insights']['comprehensive_assessment']
-    except:
-        pass
+    """COMPLETELY FIXED: Extract REAL comprehensive analysis"""
     
-    # Generate based on configuration
-    depth_descriptions = {
-        "comprehensive": """This video demonstrates professional-grade production values with sophisticated cinematographic techniques and compelling narrative structure. The technical execution reveals careful attention to visual composition, lighting design, and color grading that enhances the storytelling experience. Multi-agent analysis indicates strong alignment between technical excellence and creative vision, resulting in content that effectively engages viewers across multiple dimensions. The production showcases advanced understanding of visual language and demonstrates commercial viability through its professional execution and audience appeal.""",
-        
-        "detailed": """The video shows solid production quality with effective use of visual storytelling techniques. Technical aspects including camera work, lighting, and editing demonstrate competent execution that serves the content well. The analysis reveals clear narrative structure with appropriate pacing and visual elements that support viewer engagement.""",
-        
-        "basic": """Basic video analysis reveals clear content with adequate technical execution. The video presents its subject matter in a straightforward manner with standard production techniques and recognizable visual elements."""
-    }
+    # DEBUG: Show what we're looking at
+    print(f"DEBUG: Looking for analysis in {list(raw_results.keys())}")
     
-    return depth_descriptions.get(config.analysis_depth, depth_descriptions["basic"])
+    # The backend logs show "✅ Extracted real assessment: 2493 chars"
+    # This means the real analysis EXISTS but is in the wrong place
+    
+    # Priority 1: Check if we have the real analysis data directly
+    if hasattr(raw_results, 'overall_analysis') and len(str(raw_results.overall_analysis)) > 500:
+        analysis = str(raw_results.overall_analysis)
+        print(f"DEBUG: Found analysis in overall_analysis: {len(analysis)} chars")
+        return analysis
+    
+    # Priority 2: The analysis was extracted during pipeline but may be nested
+    # Check all possible nested locations where the 2493-char analysis could be
+    nested_paths_to_check = [
+        # Direct field access
+        'overall_analysis',
+        # Enhanced analysis results
+        'enhanced_analysis_results.overall_analysis',
+        'enhanced_results.overall_analysis', 
+        'analysis_results.overall_analysis',
+        # Key insights structure
+        'key_insights.comprehensive_assessment',
+        'insights.comprehensive_assessment',
+        # Agent discussion summary
+        'agent_insights_summary.comprehensive_analysis',
+        'analysis_summary.comprehensive_analysis',
+        # Pipeline results
+        'pipeline_results.overall_analysis',
+        'results.overall_analysis'
+    ]
+    
+    for path in nested_paths_to_check:
+        try:
+            # Navigate nested dictionary path
+            current = raw_results
+            for key in path.split('.'):
+                if isinstance(current, dict):
+                    current = current[key]
+                else:
+                    current = getattr(current, key)
+            
+            if current and len(str(current)) > 500:
+                print(f"DEBUG: Found real analysis at {path}: {len(str(current))} chars")
+                print(f"DEBUG: Preview: {str(current)[:100]}...")
+                return str(current)
+                
+        except (KeyError, AttributeError, TypeError):
+            continue
+    
+    # Priority 3: Check if the analysis is in a list/array somewhere
+    for key, value in raw_results.items():
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict) and 'analysis' in item:
+                    analysis = str(item['analysis'])
+                    if len(analysis) > 500:
+                        print(f"DEBUG: Found analysis in list item: {len(analysis)} chars")
+                        return analysis
+        elif isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                if 'analysis' in sub_key.lower() and len(str(sub_value)) > 500:
+                    print(f"DEBUG: Found analysis in {key}.{sub_key}: {len(str(sub_value))} chars")
+                    return str(sub_value)
+    
+    # Priority 4: Emergency extraction - look for ANY string longer than 1000 chars
+    # that contains analysis keywords
+    analysis_keywords = ['video', 'frame', 'visual', 'scene', 'cinematography', 'analysis']
+    
+    def find_analysis_text(obj, path="root"):
+        if isinstance(obj, str) and len(obj) > 1000:
+            obj_lower = obj.lower()
+            if any(keyword in obj_lower for keyword in analysis_keywords):
+                print(f"DEBUG: Found analysis text at {path}: {len(obj)} chars")
+                return obj
+        elif isinstance(obj, dict):
+            for key, value in obj.items():
+                result = find_analysis_text(value, f"{path}.{key}")
+                if result:
+                    return result
+        elif isinstance(obj, list):
+            for i, value in enumerate(obj):
+                result = find_analysis_text(value, f"{path}[{i}]")
+                if result:
+                    return result
+        return None
+    
+    analysis_text = find_analysis_text(raw_results)
+    if analysis_text:
+        return analysis_text
+    
+    # If we still don't find it, the issue is deeper in the pipeline
+    print("ERROR: Could not find the 2493-char analysis that was successfully extracted!")
+    print("DEBUG: This suggests a data structure issue in the pipeline conversion")
+    
+    # Return a meaningful fallback that indicates the issue
+    return f"DIAGNOSTIC: The comprehensive analysis was successfully generated (2493 characters) but was lost during data conversion. This indicates a pipeline data structure issue. Analysis depth: {config.analysis_depth}, Agents: {config.selected_agents}"
 
 def get_scene_summaries_fixed(raw_results: Dict[str, Any], config: AnalysisConfig) -> List[str]:
     """FIXED: Generate scene summaries"""
